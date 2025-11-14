@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- bean definitions here -->
+    <bean id="dev" class="org.example.Dev" autowire="byType">
+<!--        <property name="com" ref="lap1" />-->
+<!--        <property name="com" ref="desk1" />-->
+<!--        <property name="com" ref="com" />-->
+<!--        <property name="laptop" ref="lap1" />-->
+<!--&lt;!&ndash;        <property name="age" value="30" />&ndash;&gt;-->
+<!--&lt;!&ndash;        <constructor-arg index="0" value="24"/>&ndash;&gt;-->
+<!--        <constructor-arg ref="lap1" />-->
+    </bean>
+    <bean id="com" class="org.example.Laptop" primary="true">
+    </bean>
+    <bean id="desk1" class="org.example.Desktop">
+
+    </bean>
+</beans>
