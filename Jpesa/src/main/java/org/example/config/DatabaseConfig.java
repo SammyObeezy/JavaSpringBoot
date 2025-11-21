@@ -28,7 +28,7 @@ public class DatabaseConfig {
             config.setMinimumIdle(Integer.parseInt(props.getProperty("hikari.minimumIdle")));
             config.setIdleTimeout(Integer.parseInt(props.getProperty("hikari.idleTimeout")));
             config.setConnectionTimeout(Long.parseLong(props.getProperty("hikari.connectionTimeout")));
-            config.setMaxLifetime(Long.parseLong(props.getProperty("hikari.maxLifeTime")));
+            config.setMaxLifetime(Long.parseLong(props.getProperty("hikari.maxLifetime")));
 
             dataSource = new HikariDataSource(config);
         } catch (Exception e) {

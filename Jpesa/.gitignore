@@ -12,7 +12,9 @@ target/
 *.iws
 *.iml
 *.ipr
-src/main/resources/application.properties
+# Ignore real application properties
+/src/main/resources/application.properties
+
 
 
 ### Eclipse ###

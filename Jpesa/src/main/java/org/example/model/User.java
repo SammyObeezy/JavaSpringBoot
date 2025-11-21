@@ -1,5 +1,7 @@
 package org.example.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import java.time.LocalDateTime;
 
 public class User implements TimeTracked {
@@ -12,7 +14,10 @@ public class User implements TimeTracked {
     private UserStatus status;
 
     // Fields required by TimeTracked interface
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     private LocalDateTime createdAt;
+
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     private LocalDateTime updatedAt;
 
     // Required no-argument constructor for Jackson (JSON) and reflection
