@@ -1,24 +1,29 @@
 package org.example.service;
 
+import org.example.dto.LoginRequest;
 import org.example.dto.RegisterRequest;
-import org.example.model.User;
-import org.example.model.Wallet;
+import org.example.dto.VerifyOtpRequest;
+import org.example.model.*;
+import org.example.repository.OtpRepository;
 import org.example.repository.UserRepository;
 import org.example.repository.WalletRepository;
 import org.example.util.InputValidator;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class UserService {
 
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
+    private final OtpRepository otpRepository;
 
     // Constructor Injection (Easy to test)
     public UserService() {
         this.userRepository = new UserRepository();
         this.walletRepository = new WalletRepository();
+        this.otpRepository = new OtpRepository();
     }
 
     /**
@@ -58,6 +63,45 @@ public class UserService {
         // 7. Return result (Hide hash in response generally, but for now we return the object)
         return savedUser;
     }
+
+    /**
+     * Authenticate a user and generate an OTP
+     * @request String message indicating OTP sent (In real life, returns a session or triggers SMS)
+     */
+    public String loginUser(LoginRequest request){
+        // 1. Validate Phone Format
+        String normalizedPhone = InputValidator.formatPhoneNumber(request.getPhoneNumber());
+
+        // 2. Find User
+        User user = userRepository.findByPhoneNumber(normalizedPhone)
+                .orElseThrow(()-> new IllegalArgumentException("Invalid phone number or password")); // Generic error for security
+
+        //3. Check Password (BCrypt)
+        if (!BCrypt.checkpw(request.getPassword(), user.getPasswordHash())){
+            // In a real app, we would log this failed attempt in audit_logs
+            throw new IllegalArgumentException("Invalid phone number or password");
+        }
+
+        //4. Check Status
+        if (user.getStatus() != UserStatus.ACTIVE){
+            throw new IllegalStateException("Account is " + user.getStatus());
+        }
+
+        //5. Generate 6-Digit OTP
+        String otpCode = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 999999));
+
+        // 6. Save OTP to DB (Expires in 5 mins)
+        OtpCode otp = new OtpCode(user.getUserId(), otpCode, OtpPurpose.LOGIN_VERIFICATION, 5);
+        otpRepository.save(otp);
+
+        // 7. Simulate Sending SMS
+        System.out.println(">>> [SMS GATEWAY] Sending OTP " + otpCode + " to " + normalizedPhone);
+
+        return "OTP sent to " + normalizedPhone + ". Please verify.";
+    }
+
+
+
     /*
     * Validates individual fields using our InputValidator utility.
      */
@@ -78,5 +122,28 @@ public class UserService {
         if (!InputValidator.isValidPassword(request.getPassword())){
             throw new IllegalArgumentException("Password must be at least 8 characters, contain a letter and a number.");
         }
+    }
+    /**
+     * Verifies the OTP provided by the user.
+     * @return the user object if verification is successful
+     */
+    public User verifyOtp(VerifyOtpRequest request){
+        // 1. Validate Input
+        String normalizedPhone = InputValidator.formatPhoneNumber(request.getPhoneNumber());
+
+        // 2. Find User first (to get the ID)
+        User user = userRepository.findByPhoneNumber(normalizedPhone)
+                .orElseThrow(()-> new IllegalArgumentException("User not found"));
+
+        // 3. Check OTP Database
+        OtpCode validOtp = otpRepository.findValidOtp(user.getUserId(), request.getOtpCode())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid or Expired OTP"));
+
+        // 4. Mark OTP as used (Security: Prevent replay attacks)
+        otpRepository.markAsUsed(validOtp.getOtpId());
+
+        System.out.println(">>> [AUTH] User " + user.getPhoneNumber() + " logged in successfully.");
+
+        return user;
     }
 }

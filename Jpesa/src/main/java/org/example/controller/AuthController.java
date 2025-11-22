@@ -7,11 +7,14 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import org.example.dto.LoginRequest;
 import org.example.dto.RegisterRequest;
+import org.example.dto.UserResponse;
+import org.example.dto.VerifyOtpRequest;
 import org.example.model.User;
 import org.example.service.UserService;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 public class AuthController {
 
@@ -51,7 +54,8 @@ public class AuthController {
             User newUser = userService.registerUser(request);
 
             // 3. Send Response (Convert Model -> JSON)
-            String jsonResponse = objectMapper.writeValueAsString(newUser);
+            UserResponse response = new UserResponse(newUser);
+            String jsonResponse = objectMapper.writeValueAsString(response);
 
             exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
             exchange.setStatusCode(201); // Created
@@ -86,18 +90,61 @@ public class AuthController {
         try {
             // FIX: Must explicitly switch to blocking mode here too
             exchange.startBlocking();
-
             InputStream inputStream = exchange.getInputStream();
             LoginRequest request = objectMapper.readValue(inputStream, LoginRequest.class);
 
-            System.out.println("Login attempt for: " + request.getPhoneNumber());
+            // Logic: Verify credentials & Generate OTP
+            String message = userService.loginUser(request);
+
+            // Send JSON response
+            // Map.of is a Java 9+ shortcut to create a quick map for JSON
+            String jsonResponse = objectMapper.writeValueAsString(Map.of("message", message));
 
             exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
-            exchange.getResponseSender().send("{\"message\": \"Login logic coming soon!\"}");
+            exchange.setStatusCode(200); //OK
+            exchange.getResponseSender().send(jsonResponse);
 
         } catch (Exception e) {
+            e.printStackTrace();
             exchange.setStatusCode(500);
             exchange.getResponseSender().send("{\"error\": \"Login Failed\"}");
+        }
+    }
+    // Verify OTP
+    public HttpHandler verifyOtpHandler(){
+        return exchange -> {
+            if (exchange.isInIoThread()){
+                exchange.dispatch(this::handleVerifyOtp);
+                return;
+            }
+            handleVerifyOtp(exchange);
+        };
+    }
+    private void handleVerifyOtp(HttpServerExchange exchange){
+        try {
+            exchange.startBlocking();
+            InputStream inputStream = exchange.getInputStream();
+            VerifyOtpRequest request = objectMapper.readValue(inputStream, VerifyOtpRequest.class);
+
+            User user = userService.verifyOtp(request);
+            UserResponse response = new UserResponse(user); // Hide password
+
+            // Return success
+            String jsonRespone = objectMapper.writeValueAsString(Map.of(
+                    "message", "Authentication Successful",
+                    "user", response
+            ));
+
+            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
+            exchange.setStatusCode(200);
+            exchange.getResponseSender().send(jsonRespone);
+        } catch (IllegalArgumentException e) {
+            exchange.setStatusCode(401); // Unauthorized / Bad Request
+            exchange.getResponseSender().send("{\"error\": \"" + e.getMessage() + "\"}");
+        } catch (Exception e) {
+            e.printStackTrace();
+            exchange.setStatusCode(500);
+            exchange.getResponseSender().send("{\"error\": \"Verification Failed\"}");
         }
     }
 }

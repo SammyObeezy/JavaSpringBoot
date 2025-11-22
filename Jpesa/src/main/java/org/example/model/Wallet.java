@@ -24,7 +24,7 @@ public class Wallet implements TimeTracked {
 
     public Wallet(Long userId){
         this.userId = userId;
-        this.balance = balance;
+        this.balance = BigDecimal.ZERO;
         this.currency = "KES";
 
         // Time initialization

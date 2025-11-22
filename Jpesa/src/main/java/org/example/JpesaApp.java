@@ -6,12 +6,14 @@ import io.undertow.server.RoutingHandler;
 import io.undertow.util.Headers;
 import org.example.config.DatabaseConfig;
 import org.example.controller.AuthController;
+import org.example.controller.TransactionController;
 
 public class JpesaApp {
 
     public static void main(String[] args) {
         // 1. Initialize Controllers
         AuthController authController = new AuthController();
+        TransactionController txnController = new TransactionController();
 
         // 2. Define Routes (The "Traffic Cop")
         RoutingHandler routes = new RoutingHandler()
@@ -23,7 +25,14 @@ public class JpesaApp {
 
                 // Auth Routes
                 .post("/api/auth/register", authController.registerHandler())
-                .post("/api/auth/login", authController.loginHandler());
+                .post("/api/auth/login", authController.loginHandler())
+                .post("/api/auth/verify-otp", authController.verifyOtpHandler())
+
+                // Transactions (New!)
+                .post("/api/txn/deposit", txnController.depositHandler())
+                .post("/api/txn/airtime", txnController.airtimeHandler())
+                .get("/api/txn/ministatement", txnController.miniStatementHandler());
+
 
         // 3. Configure & Start Server
         int port = 8080;
