@@ -4,5 +4,6 @@ public enum TransactionType {
     DEPOSIT,
     WITHDRAWAL,
     AIRTIME_PURCHASE,
-    TRANSFER
+    TRANSFER,
+    TRANSACTION_FEE
 }

@@ -3,10 +3,7 @@ package org.example.service;
 import org.example.config.DatabaseConfig;
 import org.example.dto.SendMoneyRequest;
 import org.example.dto.TransactionRequest;
-import org.example.model.Transaction;
-import org.example.model.TransactionType;
-import org.example.model.User;
-import org.example.model.Wallet;
+import org.example.model.*;
 import org.example.repository.TransactionRepository;
 import org.example.repository.UserRepository;
 import org.example.repository.WalletRepository;
@@ -24,160 +21,129 @@ public class TransactionService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
 
+    private static final BigDecimal TRANSACTION_FEE = new BigDecimal("5.00");
+
+    // CONFIGURATION: We use the Phone Number as the constant "Business Key"
+    private static final String REVENUE_ACCOUNT_PHONE = "000000";
+
     public TransactionService() {
         this.userRepository = new UserRepository();
         this.walletRepository = new WalletRepository();
         this.transactionRepository = new TransactionRepository();
     }
 
-    /**
-     * Process a Deposit
-     */
-    public Transaction deposit(TransactionRequest request){
-        // 1. Validate User & Get Wallet
+    // ... existing deposit, buyAirtime, getMiniStatement ...
+    // (Ensure you keep the existing methods here)
+
+    public Transaction deposit(TransactionRequest request) {
         User user = validateAndGetUser(request.getPhoneNumber());
         Wallet wallet = getWallet(user.getUserId());
+        if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) throw new IllegalArgumentException("Positive amount required");
 
-        if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0){
-            throw new IllegalArgumentException("Deposit amount must be positive");
-        }
-
-        // 2. Update Balance (Add)
         BigDecimal newBalance = wallet.getBalance().add(request.getAmount());
         walletRepository.updateBalance(wallet.getWalletId(), newBalance);
-
-        // 3. Create & Save Receipt
-        Transaction txn = new Transaction(
-                wallet.getWalletId(),
-                TransactionType.DEPOSIT,
-                request.getAmount(),
-                generateReferenceCode()
-        );
+        Transaction txn = new Transaction(wallet.getWalletId(), TransactionType.DEPOSIT, request.getAmount(), generateReferenceCode());
         return transactionRepository.save(txn);
     }
 
-    /**
-     * Process Airtime Purchase.
-     */
-    public Transaction buyAirtime(TransactionRequest request){
+    public Transaction buyAirtime(TransactionRequest request) {
         User user = validateAndGetUser(request.getPhoneNumber());
         Wallet wallet = getWallet(user.getUserId());
+        if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) throw new IllegalArgumentException("Positive amount required");
+        if (wallet.getBalance().compareTo(request.getAmount()) < 0) throw new IllegalStateException("Insufficient funds");
 
-        if (request.getAmount().compareTo(BigDecimal.ZERO) <=0){
-            throw new IllegalArgumentException("Airtime amount must be positive");
-        }
-
-        // 1. Check for Insufficient Funds
-        if (wallet.getBalance().compareTo(request.getAmount()) < 0){
-            throw new IllegalStateException("Insufficient funds. Balance: " + wallet.getBalance());
-        }
-
-        // 2. Deduct Money
         BigDecimal newBalance = wallet.getBalance().subtract(request.getAmount());
         walletRepository.updateBalance(wallet.getWalletId(), newBalance);
-
-        // 3. Create & Save Receipt
-        Transaction txn = new Transaction(
-                wallet.getWalletId(),
-                TransactionType.AIRTIME_PURCHASE,
-                request.getAmount(),
-                generateReferenceCode()
-        );
-
+        Transaction txn = new Transaction(wallet.getWalletId(), TransactionType.AIRTIME_PURCHASE, request.getAmount(), generateReferenceCode());
         return transactionRepository.save(txn);
     }
-    /**
-    *Get Mini Statement (Last 10 Txns)
-     */
-    public List<Transaction> getMiniStatement(String phoneNumber){
+
+    public List<Transaction> getMiniStatement(String phoneNumber) {
         User user = validateAndGetUser(phoneNumber);
         Wallet wallet = getWallet(user.getUserId());
         return transactionRepository.findMiniStatement(wallet.getWalletId());
     }
 
     /**
-     * P2P Transfer with ACID Transactions.
+     * P2P Transfer with Fee Deduction
      */
-    public void sendMoney(SendMoneyRequest request){
-        // 1. Basic Validation
-        if(request.getAmount().compareTo(BigDecimal.ZERO) <= 0){
+    public void sendMoney(SendMoneyRequest request) {
+        if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Amount must be positive");
         }
-        if (request.getSenderPhone().equals(request.getRecipientPhone())){
+        if (request.getSenderPhone().equals(request.getRecipientPhone())) {
             throw new IllegalArgumentException("Cannot send money to yourself");
         }
 
         User sender = validateAndGetUser(request.getSenderPhone());
         User recipient = validateAndGetUser(request.getRecipientPhone());
 
-        // 2. START DATABASE TRANSACTION
-        // 3. We open ONE connection and use it for everything.
-        try (Connection conn = DatabaseConfig.getConnection()){
-            // CRITICAL: Turn of auto-commit
-            conn.setAutoCommit(false);
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false); // START TRANSACTION
 
             try {
-                // A. Lock & Get Sender Wallet
-                Wallet senderWallet = getWallet(sender.getUserId()); // In real app, use SELECT ... FOR UPDATE
-
-                // B. Check Balance
-                if (senderWallet.getBalance().compareTo(request.getAmount()) < 0){
-                    throw new IllegalArgumentException("Insufficient funds");
-                }
-
-                // C. Get Recipient Wallet
+                // 1. Get Wallets
+                Wallet senderWallet = getWallet(sender.getUserId());
                 Wallet recipientWallet = getWallet(recipient.getUserId());
 
-                // D. Perform Calculations
-                BigDecimal newSenderBalance = senderWallet.getBalance().subtract(request.getAmount());
-                BigDecimal newRecipientBalance = recipientWallet.getBalance().add(request.getAmount());
+                // 2. Get System Revenue Wallet (Dynamically)
+                Wallet systemWallet = getSystemRevenueWallet();
 
-                // E. Update Wallets (Using the SHARED connection)
-                walletRepository.updateBalance(conn, senderWallet.getWalletId(), newSenderBalance);
-                walletRepository.updateBalance(conn, recipientWallet.getWalletId(), newRecipientBalance);
+                BigDecimal transferAmount = request.getAmount();
+                BigDecimal totalDeduction = transferAmount.add(TRANSACTION_FEE);
 
-                // F. Create Receipts
+                // 3. Check Balance
+                if (senderWallet.getBalance().compareTo(totalDeduction) < 0) {
+                    throw new IllegalStateException("Insufficient funds. Needed: " + totalDeduction);
+                }
+
+                // 4. Update Balances
+                walletRepository.updateBalance(conn, senderWallet.getWalletId(), senderWallet.getBalance().subtract(totalDeduction));
+                walletRepository.updateBalance(conn, recipientWallet.getWalletId(), recipientWallet.getBalance().add(transferAmount));
+                walletRepository.updateBalance(conn, systemWallet.getWalletId(), systemWallet.getBalance().add(TRANSACTION_FEE));
+
+                // 5. Generate Receipts
                 String refCode = generateReferenceCode();
 
-                // Receipt for Sender (Negative flow logic, but recorded as TRANSFER)
-                Transaction senderTxn = new Transaction(senderWallet.getWalletId(), TransactionType.TRANSFER, request.getAmount(), refCode + "-OUT");
-                transactionRepository.save(conn, senderTxn);
+                transactionRepository.save(conn, new Transaction(senderWallet.getWalletId(), TransactionType.TRANSFER, transferAmount.negate(), refCode + "-OUT"));
+                transactionRepository.save(conn, new Transaction(senderWallet.getWalletId(), TransactionType.TRANSACTION_FEE, TRANSACTION_FEE.negate(), refCode + "-FEE"));
+                transactionRepository.save(conn, new Transaction(recipientWallet.getWalletId(), TransactionType.TRANSFER, transferAmount, refCode + "-IN"));
+                transactionRepository.save(conn, new Transaction(systemWallet.getWalletId(), TransactionType.TRANSACTION_FEE, TRANSACTION_FEE, refCode + "-REV"));
 
-                // Receipt for Recipient
-                Transaction recipientTxn = new Transaction(recipientWallet.getWalletId(), TransactionType.TRANSFER, request.getAmount(), refCode + "-IN");
-                transactionRepository.save(conn, recipientTxn);
+                conn.commit(); // COMMIT
+                System.out.println("Transfer Complete. Fee: " + TRANSACTION_FEE);
 
-                // G. COMMIT (If we reached here we are good
-                conn.commit();
-                System.out.println(">> [TRANSFER] Success: " + request.getAmount() + " from " + sender.getPhoneNumber() + " to " + recipient.getPhoneNumber());
-
-            } catch (Exception e){
-                // H. ROLLBACK (IF anything failed, undo everything)
-                conn.rollback();
-                System.err.println(">>> [TRANSFER] Failed. Rolling back. Error: " + e.getMessage());
+            } catch (Exception e) {
+                conn.rollback(); // ROLLBACK
                 throw new RuntimeException("Transfer failed: " + e.getMessage(), e);
             }
-
         } catch (SQLException e) {
-            throw new RuntimeException("Database error during transfer", e);
+            throw new RuntimeException(e);
         }
     }
 
-    // Helpers
-    private User validateAndGetUser(String phoneNumber){
-        String normalized = InputValidator.formatPhoneNumber(phoneNumber);
-        return userRepository.findByPhoneNumber(normalized)
-                .orElseThrow(() -> new IllegalStateException("Wallet not found for user"));
+    // --- Helper to find the Revenue Wallet by Phone ---
+    private Wallet getSystemRevenueWallet() {
+        User systemUser = userRepository.findByPhoneNumber(REVENUE_ACCOUNT_PHONE)
+                .orElseThrow(() -> new IllegalStateException("System Revenue Account (" + REVENUE_ACCOUNT_PHONE + ") not found. Please run DB setup script."));
+
+        return walletRepository.findByUserId(systemUser.getUserId())
+                .orElseThrow(() -> new IllegalStateException("System Revenue Wallet missing"));
     }
 
-    private Wallet getWallet(Long userId){
+    // ... Other Helpers ...
+    private User validateAndGetUser(String phoneNumber) {
+        String normalized = InputValidator.formatPhoneNumber(phoneNumber);
+        return userRepository.findByPhoneNumber(normalized)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
+    private Wallet getWallet(Long userId) {
         return walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalStateException("Wallet not found for user"));
     }
 
     private String generateReferenceCode() {
-        // Generated a code like "TXT-ABCD1234"
         return "TX-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
-
 }
