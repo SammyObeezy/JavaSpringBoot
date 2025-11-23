@@ -5,6 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
+import org.example.dto.SendMoneyRequest;
 import org.example.dto.TransactionRequest;
 import org.example.model.Transaction;
 import org.example.service.TransactionService;
@@ -53,6 +54,35 @@ public class TransactionController {
             }
             handleMiniStatement(exchange);
         };
+    }
+
+    public HttpHandler sendMoneyHandler() {
+        return exchange -> {
+            if (exchange.isInIoThread()){
+                exchange.dispatch(this::handleSendMoney);
+                return;
+            }
+            handleSendMoney(exchange);
+        };
+    }
+
+    private void handleSendMoney(HttpServerExchange exchange){
+        try {
+            exchange.startBlocking();
+            InputStream inputStream = exchange.getInputStream();
+            SendMoneyRequest request = objectMapper.readValue(inputStream, SendMoneyRequest.class);
+
+            transactionService.sendMoney(request);
+
+            /// Send simple success message
+            String jsonResponse = objectMapper.writeValueAsString(Map.of("message", "Transfer Successful"));
+            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
+            exchange.setStatusCode(200);
+            exchange.getResponseSender().send(jsonResponse);
+
+        } catch (Exception e) {
+            handleError(exchange, e);
+        }
     }
 
     private void handleDeposit(HttpServerExchange exchange){

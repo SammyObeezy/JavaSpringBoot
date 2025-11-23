@@ -31,7 +31,8 @@ public class JpesaApp {
                 // Transactions (New!)
                 .post("/api/txn/deposit", txnController.depositHandler())
                 .post("/api/txn/airtime", txnController.airtimeHandler())
-                .get("/api/txn/ministatement", txnController.miniStatementHandler());
+                .get("/api/txn/ministatement", txnController.miniStatementHandler())
+                .post("/api/txn/send", txnController.sendMoneyHandler());
 
 
         // 3. Configure & Start Server

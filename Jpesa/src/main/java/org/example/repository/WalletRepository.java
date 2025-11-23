@@ -59,21 +59,26 @@ public class WalletRepository {
     }
 
     /**
+     * Standard update (Single operation, auto-committed)
+     */
+    public void updateBalance(Long walletId, BigDecimal newBalance) {
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            updateBalance(conn, walletId, newBalance);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error updating wallet balance", e);
+        }
+    }
+
+    /**
      * Updates the wallet balance.
      * CRITICAL: This method should often be part of a larger Transaction to ensure safety.
      */
-    public void updateBalance(Long walletId, BigDecimal newBalance){
-        try (Connection conn = DatabaseConfig.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(UPDATE_BALANCE)){
-
-
+    public void updateBalance(Connection conn, Long walletId, BigDecimal newBalance) throws SQLException {
+        try (PreparedStatement stmt = conn.prepareStatement(UPDATE_BALANCE)) {
             stmt.setBigDecimal(1, newBalance);
             stmt.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
             stmt.setLong(3, walletId);
             stmt.executeUpdate();
-
-        } catch (SQLException e) {
-            throw new RuntimeException("Error updating wallet balance", e);
         }
     }
 

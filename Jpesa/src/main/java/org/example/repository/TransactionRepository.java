@@ -15,9 +15,19 @@ public class TransactionRepository {
     // Fetch last 10 transactions for a specific wallet, newest first
     private static final String FIND_MINI_STATEMENT = "SELECT * FROM transactions WHERE wallet_id = ? ORDER BY created_at DESC LIMIT 10";
 
-    public Transaction save(Transaction txn){
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(INSERT_TXN)){
+    /**
+     * Standard save (Single operation)
+     */
+    public Transaction save(Transaction txn) {
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            return save(conn, txn);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error saving transaction", e);
+        }
+    }
+
+    public Transaction save(Connection conn, Transaction txn) throws  SQLException{
+        try (PreparedStatement stmt = conn.prepareStatement(INSERT_TXN)){
 
             stmt.setLong(1, txn.getWalletId());
             stmt.setString(2, txn.getTxnType().name());
@@ -32,8 +42,6 @@ public class TransactionRepository {
                 }
             }
             return txn;
-        } catch (SQLException e){
-            throw new RuntimeException("Error saving transaction: " + e.getMessage(), e);
         }
     }
     public List<Transaction> findMiniStatement(Long walletId){
@@ -60,7 +68,16 @@ public class TransactionRepository {
         txn.setTxnType(TransactionType.valueOf(rs.getString("txn_type")));
         txn.setAmount(rs.getBigDecimal("amount"));
         txn.setReferenceCode(rs.getString("reference_code"));
-        txn.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+
+        // FIX: Map Timestamp -> LocalDateTime for BOTH created and updated
+        Timestamp created = rs.getTimestamp("created_at");
+        if (created != null) {
+            txn.setCreatedAt(created.toLocalDateTime());
+        }
+        Timestamp updated = rs.getTimestamp("updated_at");
+        if (updated != null) {
+            txn.setUpdatedAt(updated.toLocalDateTime());
+        }
         return txn;
     }
 }

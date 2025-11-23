@@ -1,5 +1,7 @@
 package org.example.service;
 
+import org.example.config.DatabaseConfig;
+import org.example.dto.SendMoneyRequest;
 import org.example.dto.TransactionRequest;
 import org.example.model.Transaction;
 import org.example.model.TransactionType;
@@ -11,6 +13,8 @@ import org.example.repository.WalletRepository;
 import org.example.util.InputValidator;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 
@@ -89,6 +93,74 @@ public class TransactionService {
         User user = validateAndGetUser(phoneNumber);
         Wallet wallet = getWallet(user.getUserId());
         return transactionRepository.findMiniStatement(wallet.getWalletId());
+    }
+
+    /**
+     * P2P Transfer with ACID Transactions.
+     */
+    public void sendMoney(SendMoneyRequest request){
+        // 1. Basic Validation
+        if(request.getAmount().compareTo(BigDecimal.ZERO) <= 0){
+            throw new IllegalArgumentException("Amount must be positive");
+        }
+        if (request.getSenderPhone().equals(request.getRecipientPhone())){
+            throw new IllegalArgumentException("Cannot send money to yourself");
+        }
+
+        User sender = validateAndGetUser(request.getSenderPhone());
+        User recipient = validateAndGetUser(request.getRecipientPhone());
+
+        // 2. START DATABASE TRANSACTION
+        // 3. We open ONE connection and use it for everything.
+        try (Connection conn = DatabaseConfig.getConnection()){
+            // CRITICAL: Turn of auto-commit
+            conn.setAutoCommit(false);
+
+            try {
+                // A. Lock & Get Sender Wallet
+                Wallet senderWallet = getWallet(sender.getUserId()); // In real app, use SELECT ... FOR UPDATE
+
+                // B. Check Balance
+                if (senderWallet.getBalance().compareTo(request.getAmount()) < 0){
+                    throw new IllegalArgumentException("Insufficient funds");
+                }
+
+                // C. Get Recipient Wallet
+                Wallet recipientWallet = getWallet(recipient.getUserId());
+
+                // D. Perform Calculations
+                BigDecimal newSenderBalance = senderWallet.getBalance().subtract(request.getAmount());
+                BigDecimal newRecipientBalance = recipientWallet.getBalance().add(request.getAmount());
+
+                // E. Update Wallets (Using the SHARED connection)
+                walletRepository.updateBalance(conn, senderWallet.getWalletId(), newSenderBalance);
+                walletRepository.updateBalance(conn, recipientWallet.getWalletId(), newRecipientBalance);
+
+                // F. Create Receipts
+                String refCode = generateReferenceCode();
+
+                // Receipt for Sender (Negative flow logic, but recorded as TRANSFER)
+                Transaction senderTxn = new Transaction(senderWallet.getWalletId(), TransactionType.TRANSFER, request.getAmount(), refCode + "-OUT");
+                transactionRepository.save(conn, senderTxn);
+
+                // Receipt for Recipient
+                Transaction recipientTxn = new Transaction(recipientWallet.getWalletId(), TransactionType.TRANSFER, request.getAmount(), refCode + "-IN");
+                transactionRepository.save(conn, recipientTxn);
+
+                // G. COMMIT (If we reached here we are good
+                conn.commit();
+                System.out.println(">> [TRANSFER] Success: " + request.getAmount() + " from " + sender.getPhoneNumber() + " to " + recipient.getPhoneNumber());
+
+            } catch (Exception e){
+                // H. ROLLBACK (IF anything failed, undo everything)
+                conn.rollback();
+                System.err.println(">>> [TRANSFER] Failed. Rolling back. Error: " + e.getMessage());
+                throw new RuntimeException("Transfer failed: " + e.getMessage(), e);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Database error during transfer", e);
+        }
     }
 
     // Helpers
