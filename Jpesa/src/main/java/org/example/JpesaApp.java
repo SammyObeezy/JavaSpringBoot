@@ -4,6 +4,7 @@ import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.RoutingHandler;
 import io.undertow.util.Headers;
+import org.example.config.AuthMiddleware;
 import org.example.config.DatabaseConfig;
 import org.example.controller.AuthController;
 import org.example.controller.TransactionController;
@@ -29,10 +30,10 @@ public class JpesaApp {
                 .post("/api/auth/verify-otp", authController.verifyOtpHandler())
 
                 // Transactions (New!)
-                .post("/api/txn/deposit", txnController.depositHandler())
-                .post("/api/txn/airtime", txnController.airtimeHandler())
-                .get("/api/txn/ministatement", txnController.miniStatementHandler())
-                .post("/api/txn/send", txnController.sendMoneyHandler());
+                .post("/api/txn/deposit", new AuthMiddleware(txnController.depositHandler()))
+                .post("/api/txn/airtime",  new AuthMiddleware(txnController.airtimeHandler()))
+                .post("/api/txn/send",  new AuthMiddleware(txnController.sendMoneyHandler()))
+                .get("/api/txn/ministatement",  new AuthMiddleware(txnController.miniStatementHandler()));
 
 
         // 3. Configure & Start Server

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
+import io.undertow.util.AttachmentKey;
 import io.undertow.util.Headers;
 import org.example.dto.SendMoneyRequest;
 import org.example.dto.TransactionRequest;
@@ -11,24 +12,27 @@ import org.example.model.Transaction;
 import org.example.service.TransactionService;
 
 import java.io.InputStream;
-import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
 public class TransactionController {
 
     private final TransactionService transactionService;
-    private  final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    public TransactionController(){
+    // Define the Key to retrieve the attached phone number from AuthMiddleware
+    public static final AttachmentKey<String> USER_PHONE_KEY = AttachmentKey.create(String.class);
+
+    public TransactionController() {
         this.transactionService = new TransactionService();
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
     }
 
+    // --- HANDLER DEFINITIONS ---
     public HttpHandler depositHandler() {
         return exchange -> {
-            if (exchange.isInIoThread()){
+            if (exchange.isInIoThread()) {
                 exchange.dispatch(this::handleDeposit);
                 return;
             }
@@ -38,7 +42,7 @@ public class TransactionController {
 
     public HttpHandler airtimeHandler() {
         return exchange -> {
-            if (exchange.isInIoThread()){
+            if (exchange.isInIoThread()) {
                 exchange.dispatch(this::handleAirtime);
                 return;
             }
@@ -46,19 +50,9 @@ public class TransactionController {
         };
     }
 
-    public HttpHandler miniStatementHandler() {
-        return exchange -> {
-            if (exchange.isInIoThread()){
-                exchange.dispatch(this::handleMiniStatement);
-                return;
-            }
-            handleMiniStatement(exchange);
-        };
-    }
-
     public HttpHandler sendMoneyHandler() {
         return exchange -> {
-            if (exchange.isInIoThread()){
+            if (exchange.isInIoThread()) {
                 exchange.dispatch(this::handleSendMoney);
                 return;
             }
@@ -66,15 +60,68 @@ public class TransactionController {
         };
     }
 
-    private void handleSendMoney(HttpServerExchange exchange){
+    public HttpHandler miniStatementHandler() {
+        return exchange -> {
+            if (exchange.isInIoThread()) {
+                exchange.dispatch(this::handleMiniStatement);
+                return;
+            }
+            handleMiniStatement(exchange);
+        };
+    }
+
+    // --- LOGIC ---
+
+    private void handleDeposit(HttpServerExchange exchange) {
         try {
             exchange.startBlocking();
+            String authenticatedPhone = exchange.getAttachment(USER_PHONE_KEY);
+
+            InputStream inputStream = exchange.getInputStream();
+            TransactionRequest request = objectMapper.readValue(inputStream, TransactionRequest.class);
+
+            // Force security: Use the phone number from the Token
+            request.setPhoneNumber(authenticatedPhone);
+
+            Transaction txn = transactionService.deposit(request);
+            sendSuccess(exchange, txn);
+
+        } catch (Exception e) {
+            handleError(exchange, e);
+        }
+    }
+
+    private void handleAirtime(HttpServerExchange exchange) {
+        try {
+            exchange.startBlocking();
+            String authenticatedPhone = exchange.getAttachment(USER_PHONE_KEY);
+
+            InputStream inputStream = exchange.getInputStream();
+            TransactionRequest request = objectMapper.readValue(inputStream, TransactionRequest.class);
+
+            request.setPhoneNumber(authenticatedPhone);
+
+            Transaction txn = transactionService.buyAirtime(request);
+            sendSuccess(exchange, txn);
+
+        } catch (Exception e) {
+            handleError(exchange, e);
+        }
+    }
+
+    private void handleSendMoney(HttpServerExchange exchange) {
+        try {
+            exchange.startBlocking();
+            String authenticatedPhone = exchange.getAttachment(USER_PHONE_KEY);
+
             InputStream inputStream = exchange.getInputStream();
             SendMoneyRequest request = objectMapper.readValue(inputStream, SendMoneyRequest.class);
 
+            // Force Sender to be the logged-in user
+            request.setSenderPhone(authenticatedPhone);
+
             transactionService.sendMoney(request);
 
-            /// Send simple success message
             String jsonResponse = objectMapper.writeValueAsString(Map.of("message", "Transfer Successful"));
             exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
             exchange.setStatusCode(200);
@@ -85,51 +132,26 @@ public class TransactionController {
         }
     }
 
-    private void handleDeposit(HttpServerExchange exchange){
+    private void handleMiniStatement(HttpServerExchange exchange) {
         try {
-            exchange.startBlocking();
-            InputStream inputStream  =exchange.getInputStream();
-            TransactionRequest request = objectMapper.readValue(inputStream, TransactionRequest.class);
+            // SECURE UPDATE: We no longer need ?phoneNumber=... in the URL.
+            // We get the phone number directly from the Token.
+            String authenticatedPhone = exchange.getAttachment(USER_PHONE_KEY);
 
-            Transaction txn = transactionService.deposit(request);
-            sendSuccess(exchange, txn);
-        } catch (Exception e){
-            handleError(exchange, e);
-        }
-    }
-
-    private void handleAirtime(HttpServerExchange exchange){
-        try {
-            exchange.startBlocking();
-            InputStream inputStream = exchange.getInputStream();
-            TransactionRequest request = objectMapper.readValue(inputStream, TransactionRequest.class);
-
-            Transaction txn = transactionService.buyAirtime(request);
-            sendSuccess(exchange, txn);
-        } catch (Exception e){
-            handleError(exchange, e);
-        }
-    }
-
-    private void handleMiniStatement(HttpServerExchange exchange){
-        try{
-            // Get Query Param: /api/txn/ministatement?phoneNumber=07...
-            Map<String, Deque<String>> params = exchange.getQueryParameters();
-            if (!params.containsKey("phoneNumber")) {
-                throw new IllegalArgumentException("phoneNumber query is required");
-            }
-
-            String phoneNumber = params.get("phoneNumber").getFirst();
-            List<Transaction> statement = transactionService.getMiniStatement(phoneNumber);
+            List<Transaction> statement = transactionService.getMiniStatement(authenticatedPhone);
 
             String jsonResponse = objectMapper.writeValueAsString(statement);
             exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
             exchange.setStatusCode(200);
             exchange.getResponseSender().send(jsonResponse);
-        } catch (Exception e){
+
+        } catch (Exception e) {
             handleError(exchange, e);
         }
     }
+
+    // --- HELPERS ---
+
     private void sendSuccess(HttpServerExchange exchange, Object body) throws Exception {
         String jsonResponse = objectMapper.writeValueAsString(Map.of(
                 "message", "Success",

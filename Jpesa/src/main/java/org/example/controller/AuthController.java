@@ -11,6 +11,7 @@ import org.example.dto.UserResponse;
 import org.example.dto.VerifyOtpRequest;
 import org.example.model.User;
 import org.example.service.UserService;
+import org.example.util.JwtUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -127,17 +128,22 @@ public class AuthController {
             VerifyOtpRequest request = objectMapper.readValue(inputStream, VerifyOtpRequest.class);
 
             User user = userService.verifyOtp(request);
+
+            // NEW: Generate Token
+            String token = JwtUtil.generateToken(user.getPhoneNumber(), user.getUserId());
+
             UserResponse response = new UserResponse(user); // Hide password
 
             // Return success
-            String jsonRespone = objectMapper.writeValueAsString(Map.of(
+            String jsonResponse = objectMapper.writeValueAsString(Map.of(
                     "message", "Authentication Successful",
+                    "token", token,
                     "user", response
             ));
 
             exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
             exchange.setStatusCode(200);
-            exchange.getResponseSender().send(jsonRespone);
+            exchange.getResponseSender().send(jsonResponse);
         } catch (IllegalArgumentException e) {
             exchange.setStatusCode(401); // Unauthorized / Bad Request
             exchange.getResponseSender().send("{\"error\": \"" + e.getMessage() + "\"}");
