@@ -2,7 +2,7 @@
 
 ## Overview
 
-J-Pesa is a robust, lightweight, and high-performance backend system for a mobile money application similar to M-Pesa. Built using Pure Java (JDK 22) without heavy frameworks like Spring Boot, it demonstrates a custom architecture from the ground up using Undertow for the web server, Jackson for JSON processing, and raw JDBC for database interactions.
+J-Pesa is a robust, lightweight, and high-performance backend system for a mobile money application. Built using Pure Java (JDK 22) without heavy frameworks like Spring Boot, it demonstrates a custom architecture from the ground up using Undertow for the web server, Jackson for JSON processing, and raw JDBC for database interactions.
 
 This project showcases core backend engineering concepts including ACID Transactions, Connection Pooling, JWT Authentication, Database Normalization, and Unit Testing.
 
