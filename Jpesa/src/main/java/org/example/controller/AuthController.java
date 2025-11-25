@@ -205,4 +205,36 @@ public class AuthController {
             exchange.getResponseSender().send("{\"error\": \"" + e.getMessage() + "\"}");
         }
     }
+
+    public HttpHandler profileHandler() {
+        return exchange -> {
+            if (exchange.isInIoThread()) {
+                exchange.dispatch(this::handleProfile);
+                return;
+            }
+            handleProfile(exchange);
+        };
+    }
+
+    private void handleProfile(HttpServerExchange exchange){
+        try {
+            // 1. Get phone from Token
+            String authenticatedPhone = exchange.getAttachment(TransactionController.USER_PHONE_KEY);
+
+            //2. Call the CACHED service method
+            User user = userService.getCachedUser(authenticatedPhone);
+
+            // 3. Return
+            UserResponse response = new UserResponse(user);
+            String json = objectMapper.writeValueAsString(response);
+
+            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
+            exchange.setStatusCode(200);
+            exchange.getResponseSender().send(json);
+        } catch (Exception e){
+            e.printStackTrace();
+            exchange.setStatusCode(500);
+            exchange.getResponseSender().send("{\"error\": \"Error fetching profile\"}");
+        }
+    }
 }

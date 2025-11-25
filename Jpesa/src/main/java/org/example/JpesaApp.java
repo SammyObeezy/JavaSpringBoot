@@ -36,7 +36,8 @@ public class JpesaApp {
                 .get("/api/txn/ministatement",  new AuthMiddleware(txnController.miniStatementHandler()))
                 // Password Reset
                 .post("/api/auth/forgot-password", authController.initiateResetHandler())
-                .post("/api/auth/reset-password", authController.completeResetHandler());
+                .post("/api/auth/reset-password", authController.completeResetHandler())
+                .get("/api/auth/profile", new AuthMiddleware(authController.profileHandler()));
 
 
         // 3. Configure & Start Server

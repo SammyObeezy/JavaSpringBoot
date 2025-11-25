@@ -119,6 +119,12 @@
             <version>5.11.0</version>
             <scope>test</scope>
         </dependency>
+        <!-- Redis Client -->
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>5.1.0</version>
+        </dependency>
     </dependencies>
 
     <build>
