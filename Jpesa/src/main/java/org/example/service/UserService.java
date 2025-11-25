@@ -1,5 +1,8 @@
 package org.example.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.example.config.RedisConfig;
 import org.example.dto.LoginRequest;
 import org.example.dto.PasswordResetRequest;
 import org.example.dto.RegisterRequest;
@@ -10,6 +13,7 @@ import org.example.repository.UserRepository;
 import org.example.repository.WalletRepository;
 import org.example.util.InputValidator;
 import org.mindrot.jbcrypt.BCrypt;
+import redis.clients.jedis.Jedis;
 
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -19,6 +23,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final OtpRepository otpRepository;
+    private final ObjectMapper objectMapper;
 
     // 1. Default Constructor (Used by the App)
     public UserService() {
@@ -30,6 +35,8 @@ public class UserService {
         this.userRepository = userRepository;
         this.walletRepository = walletRepository;
         this.otpRepository = otpRepository;
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new JavaTimeModule());
     }
 
     /**
@@ -203,5 +210,48 @@ public class UserService {
         otpRepository.markAsUsed(validOtp.getOtpId());
 
         System.out.println(">>> [AUTH] Password reset successful for " + normalizedPhone);
+    }
+    /**
+     * CACHED USER LOOKUP
+     * Checks Redis first. If missing, hits DB and saves to Redis.
+     */
+    public User getCachedUser(String phoneNumber) {
+        String normalizedPhone = InputValidator.formatPhoneNumber(phoneNumber);
+        String cacheKey = "user:" + normalizedPhone;
+
+        // 1. CHECK REDIS (Fast Lane)
+        try (Jedis redis = RedisConfig.getConnection()) {
+            String cachedJson = redis.get(cacheKey);
+            if (cachedJson != null) {
+                System.out.println(">>> [CACHE HIT] Found in Redis: " + normalizedPhone);
+                return objectMapper.readValue(cachedJson, User.class);
+            }
+        } catch (Exception e) {
+            System.err.println("Redis error (ignoring): " + e.getMessage());
+        }
+
+        // 2. QUERY DB (Slow Lane)
+        System.out.println(">>> [CACHE MISS] Querying Database: " + normalizedPhone);
+        User user = userRepository.findByPhoneNumber(normalizedPhone)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // 3. SAVE TO REDIS (For next time)
+        try (Jedis redis = RedisConfig.getConnection()) {
+            String json = objectMapper.writeValueAsString(user);
+            redis.setex(cacheKey, RedisConfig.TTL_SECONDS, json);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return user;
+    }
+    public void invalidateCache(String phoneNumber){
+        String normalizedPhone = InputValidator.formatPhoneNumber(phoneNumber);
+        try (Jedis redis = RedisConfig.getConnection()){
+            redis.del("user:" + normalizedPhone);
+            System.out.println(">>> [CACHE CLEARED] for " + normalizedPhone);
+        } catch (Exception e){
+            e.printStackTrace();
+        }
     }
 }
