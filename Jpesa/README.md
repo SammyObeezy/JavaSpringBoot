@@ -130,6 +130,7 @@ The server will start at `http://0.0.0.0:8080`.
 | POST | `/api/txn/send` | Yes | Send money to another user |
 | GET | `/api/txn/ministatement` | Yes | Get transaction history |
 
+## Postman published link
 ```bash
 https://documenter.getpostman.com/view/36722255/2sB3dJyXEx
 ```
