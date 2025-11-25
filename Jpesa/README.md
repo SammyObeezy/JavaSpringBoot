@@ -130,6 +130,9 @@ The server will start at `http://0.0.0.0:8080`.
 | POST | `/api/txn/send` | Yes | Send money to another user |
 | GET | `/api/txn/ministatement` | Yes | Get transaction history |
 
+```bash
+https://documenter.getpostman.com/view/36722255/2sB3dJyXEx
+```
 ## Testing
 
 The project includes Unit Tests using JUnit 5 and Mockito. Tests focus on the Service layer logic, mocking the database interactions to ensure business rules (fees, negative balances, user existence) work correctly.
