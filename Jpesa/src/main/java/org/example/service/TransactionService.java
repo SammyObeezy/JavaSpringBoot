@@ -26,14 +26,16 @@ public class TransactionService {
     // CONFIGURATION: We use the Phone Number as the constant "Business Key"
     private static final String REVENUE_ACCOUNT_PHONE = "000000";
 
+    // 1. Default Constructor (Used by the App)
     public TransactionService() {
-        this.userRepository = new UserRepository();
-        this.walletRepository = new WalletRepository();
-        this.transactionRepository = new TransactionRepository();
+        this(new UserRepository(), new WalletRepository(), new TransactionRepository());
     }
 
-    // ... existing deposit, buyAirtime, getMiniStatement ...
-    // (Ensure you keep the existing methods here)
+    public TransactionService(UserRepository userRepository, WalletRepository walletRepository, TransactionRepository transactionRepository) {
+        this.userRepository = userRepository;
+        this.walletRepository = walletRepository;
+        this.transactionRepository = transactionRepository;
+    }
 
     public Transaction deposit(TransactionRequest request) {
         User user = validateAndGetUser(request.getPhoneNumber());

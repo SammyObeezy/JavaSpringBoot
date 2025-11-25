@@ -1,6 +1,7 @@
 package org.example.service;
 
 import org.example.dto.LoginRequest;
+import org.example.dto.PasswordResetRequest;
 import org.example.dto.RegisterRequest;
 import org.example.dto.VerifyOtpRequest;
 import org.example.model.*;
@@ -19,11 +20,16 @@ public class UserService {
     private final WalletRepository walletRepository;
     private final OtpRepository otpRepository;
 
-    // Constructor Injection (Easy to test)
+    // 1. Default Constructor (Used by the App)
     public UserService() {
-        this.userRepository = new UserRepository();
-        this.walletRepository = new WalletRepository();
-        this.otpRepository = new OtpRepository();
+        this(new UserRepository(), new WalletRepository(), new OtpRepository());
+    }
+
+    // 2. Parameterized Constructor (Used by Tests for Injection)
+    public UserService(UserRepository userRepository, WalletRepository walletRepository, OtpRepository otpRepository) {
+        this.userRepository = userRepository;
+        this.walletRepository = walletRepository;
+        this.otpRepository = otpRepository;
     }
 
     /**
@@ -145,5 +151,57 @@ public class UserService {
         System.out.println(">>> [AUTH] User " + user.getPhoneNumber() + " logged in successfully.");
 
         return user;
+    }
+
+    /**
+     * Step 1: User asks for a reset. We verify they exist and send an OTP.
+     */
+    public String initiatePasswordReset(String phoneNumber){
+        String normalizedPhone = InputValidator.formatPhoneNumber(phoneNumber);
+        User user = userRepository.findByPhoneNumber(normalizedPhone)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // Generate OTP
+        String otpCode = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 999999));
+
+        // Save OTP with purpose PASSWORD_REST
+        OtpCode otp = new OtpCode(user.getUserId(), otpCode, OtpPurpose.PASSWORD_RESET, 10);
+        otpRepository.save(otp);
+
+        System.out.println(">>> [SMS GATEWAY] RESET OTP " + otpCode + " sent to " + normalizedPhone);
+        return "OTP sent for password reset.";
+    }
+
+    /**
+     * Step 2: User provides OTP and New Password. We verify and update
+     */
+    public void completePasswordReset(PasswordResetRequest request){
+        // 1. Validate Input
+        String normalizedPhone = InputValidator.formatPhoneNumber(request.getPhoneNumber());
+        if (!InputValidator.isValidPassword(request.getNewPassword())){
+            throw new IllegalArgumentException("Password too weak");
+        }
+
+        // 2. Find User
+        User user = userRepository.findByPhoneNumber(normalizedPhone)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // 3. Find Valid OTP (Must be for PASSWORD_RESET purpose
+        OtpCode validOtp = otpRepository.findValidOtp(user.getUserId(), request.getOtpCode())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid or Expired OTP"));
+
+        // 4. Check Purpose (Security check)
+        if (validOtp.getPurpose() != OtpPurpose.PASSWORD_RESET){
+            throw new IllegalArgumentException("Invalid OTP purpose");
+        }
+
+        // 5. Update Password
+        String newHash = BCrypt.hashpw(request.getNewPassword(), BCrypt.gensalt(12));
+        userRepository.updatePassword(user.getUserId(), newHash);
+
+        // 6. Mark OTP used
+        otpRepository.markAsUsed(validOtp.getOtpId());
+
+        System.out.println(">>> [AUTH] Password reset successful for " + normalizedPhone);
     }
 }

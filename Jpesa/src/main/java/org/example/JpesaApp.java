@@ -33,7 +33,10 @@ public class JpesaApp {
                 .post("/api/txn/deposit", new AuthMiddleware(txnController.depositHandler()))
                 .post("/api/txn/airtime",  new AuthMiddleware(txnController.airtimeHandler()))
                 .post("/api/txn/send",  new AuthMiddleware(txnController.sendMoneyHandler()))
-                .get("/api/txn/ministatement",  new AuthMiddleware(txnController.miniStatementHandler()));
+                .get("/api/txn/ministatement",  new AuthMiddleware(txnController.miniStatementHandler()))
+                // Password Reset
+                .post("/api/auth/forgot-password", authController.initiateResetHandler())
+                .post("/api/auth/reset-password", authController.completeResetHandler());
 
 
         // 3. Configure & Start Server

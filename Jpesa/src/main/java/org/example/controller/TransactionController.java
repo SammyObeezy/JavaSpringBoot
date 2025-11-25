@@ -9,6 +9,9 @@ import io.undertow.util.Headers;
 import org.example.dto.SendMoneyRequest;
 import org.example.dto.TransactionRequest;
 import org.example.model.Transaction;
+import org.example.repository.TransactionRepository;
+import org.example.repository.UserRepository;
+import org.example.repository.WalletRepository;
 import org.example.service.TransactionService;
 
 import java.io.InputStream;
@@ -24,7 +27,11 @@ public class TransactionController {
     public static final AttachmentKey<String> USER_PHONE_KEY = AttachmentKey.create(String.class);
 
     public TransactionController() {
-        this.transactionService = new TransactionService();
+        this.transactionService = new TransactionService(
+                new UserRepository(),
+                new WalletRepository(),
+                new TransactionRepository()
+        );
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
     }

@@ -5,10 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
-import org.example.dto.LoginRequest;
-import org.example.dto.RegisterRequest;
-import org.example.dto.UserResponse;
-import org.example.dto.VerifyOtpRequest;
+import org.example.dto.*;
 import org.example.model.User;
 import org.example.service.UserService;
 import org.example.util.JwtUtil;
@@ -151,6 +148,61 @@ public class AuthController {
             e.printStackTrace();
             exchange.setStatusCode(500);
             exchange.getResponseSender().send("{\"error\": \"Verification Failed\"}");
+        }
+    }
+    /**
+     * Handler for Reset Password
+     */
+    public HttpHandler initiateResetHandler() {
+        return exchange -> {
+            if (exchange.isInIoThread()){
+                exchange.dispatch(this::handleInitiateReset);
+                return;
+            }
+            handleInitiateReset(exchange);
+        };
+    }
+    public HttpHandler completeResetHandler(){
+        return exchange -> {
+            if (exchange.isInIoThread()){
+                exchange.dispatch(this::handleCompleteReset);
+                return;
+            }
+            handleCompleteReset(exchange);
+        };
+    }
+
+    private void handleInitiateReset(HttpServerExchange exchange){
+        try {
+            exchange.startBlocking();
+            // Expecting simple JSON "{"phoneNumber" : "..."}
+            Map<String, String> body = objectMapper.readValue(exchange.getInputStream(), Map.class);
+            String phone = body.get("phoneNumber");
+
+            String msg = userService.initiatePasswordReset(phone);
+
+            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
+            exchange.setStatusCode(200);
+            exchange.getResponseSender().send("{\"message\": \"" + msg + "\"}");
+        } catch (Exception e){
+            exchange.setStatusCode(400);
+            exchange.getResponseSender().send("{\"error\": \"" + e.getMessage() + "\"}");
+        }
+    }
+    private void handleCompleteReset(HttpServerExchange exchange) {
+        try {
+            exchange.startBlocking();
+            PasswordResetRequest request = objectMapper.readValue(exchange.getInputStream(), PasswordResetRequest.class);
+
+            userService.completePasswordReset(request);
+
+            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
+            exchange.setStatusCode(200);
+            exchange.getResponseSender().send("{\"message\": \"Password reset successful\"}");
+
+        } catch (Exception e) {
+            exchange.setStatusCode(400);
+            exchange.getResponseSender().send("{\"error\": \"" + e.getMessage() + "\"}");
         }
     }
 }

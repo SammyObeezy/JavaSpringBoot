@@ -15,6 +15,7 @@ public class UserRepository {
     private static final String FIND_BY_PHONE = "SELECT * FROM users WHERE phone_number = ?";
     private static final String FIND_BY_ID = "SELECT * FROM users WHERE user_id = ?";
     private static final String UPDATE_STATUS = "UPDATE users SET status = ?, updated_at = ? WHERE user_id = ?";
+    private static final String UPDATE_PASSWORD = "UPDATE users SET password_hash = ?, updated_at = ? WHERE user_id = ?";
 
     /**
      * Saves a new user to the database.
@@ -87,6 +88,21 @@ public class UserRepository {
             stmt.executeUpdate();
         } catch (SQLException e){
             throw new RuntimeException("Error in updating status", e);
+        }
+    }
+
+    // Update Password
+    public void updatePassword(Long userId, String newPasswordHash){
+        try (Connection conn = DatabaseConfig.getConnection();
+        PreparedStatement stmt = conn.prepareStatement(UPDATE_PASSWORD)){
+
+            stmt.setString(1, newPasswordHash);
+            stmt.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+            stmt.setLong(3, userId);
+            stmt.executeUpdate();
+
+        } catch (SQLException e){
+            throw new RuntimeException("Error updating password", e);
         }
     }
     // Helper method to keep code DRY
