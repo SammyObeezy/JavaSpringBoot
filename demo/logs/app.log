@@ -1,0 +1,20 @@
+2025-11-26T21:11:37.205+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] Microservice.demo.DemoApplication        : Starting DemoApplication using Java 22.0.2 with PID 11220 (/home/obeezy/Desktop/JavaSpringBoot/demo/target/classes started by obeezy in /home/obeezy/Desktop/JavaSpringBoot/demo)
+2025-11-26T21:11:37.211+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] Microservice.demo.DemoApplication        : No active profile set, falling back to 1 default profile: "default"
+2025-11-26T21:11:38.758+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-11-26T21:11:38.791+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 20 ms. Found 0 JPA repository interfaces.
+2025-11-26T21:11:39.893+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2025-11-26T21:11:40.030+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-11-26T21:11:40.031+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.14]
+2025-11-26T21:11:40.098+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2677 ms
+2025-11-26T21:11:41.526+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-11-26T21:11:41.606+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-11-26T21:11:42.902+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:67bab2f0-1e90-48dd-80cf-3598605ab7a0 user=SA
+2025-11-26T21:11:42.905+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-11-26T21:11:43.630+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-11-26T21:11:44.317+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2025-11-26T21:11:44.331+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [main] Microservice.demo.DemoApplication        : Started DemoApplication in 9.266 seconds (process running for 11.665)
+2025-11-26T21:14:40.544+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [SpringApplicationShutdownHook] o.s.boot.tomcat.GracefulShutdown         : Commencing graceful shutdown. Waiting for active requests to complete
+2025-11-26T21:14:40.547+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [tomcat-shutdown] o.s.boot.tomcat.GracefulShutdown         : Graceful shutdown complete
+2025-11-26T21:14:40.551+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-11-26T21:14:40.553+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-11-26T21:14:40.556+03:00  INFO 11220 --- [safaricom-booking-orchestrator] [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
