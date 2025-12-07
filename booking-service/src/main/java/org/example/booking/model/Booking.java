@@ -20,7 +20,7 @@ public class Booking extends BaseEntity{
     @Column(nullable = false)
     private Long userId; // Reference to Auth Service User
 
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
