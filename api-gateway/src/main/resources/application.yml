@@ -1,0 +1,54 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+          lower-case-service-id: true
+
+      routes:
+        # AUTH SERVICE - AUTH ENDPOINTS
+        - id: auth-service-auth
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**
+
+        # AUTH SERVICE - USER ENDPOINTS
+        - id: auth-service-users
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/users/**
+
+        # BOOKING SERVICE - MAIN ENDPOINTS
+        - id: booking-service-main
+          uri: lb://booking-service
+          predicates:
+            - Path=/api/bookings/**
+
+        # BOOKING SERVICE - EVENTS ENDPOINTS
+        - id: booking-service-events
+          uri: lb://booking-service
+          predicates:
+            - Path=/api/bookings/events/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+
+# LOGGING CONFIGURATION
+logging:
+  level:
+    org.springframework.cloud.gateway: TRACE
+    org.springframework.http.server.reactive: DEBUG
+    org.springframework.web.reactive: DEBUG
+    reactor.netty: DEBUG
+    root: INFO

@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # 1. MySQL for Auth Service (Limited to 300MB RAM)
+  # This stores user credentials and roles.
+  mysql-auth:
+    image: mysql:8.0
+    container_name: auth_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: your_password
+      MYSQL_DATABASE: your_auth_db
+    ports:
+      - "3306:3306"
+    networks:
+      - microservices-net
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+
+  # 2. PostgreSQL for Booking Service (Limited to 250MB RAM)
+  # This stores event details and ticket reservations.
+  postgres-booking:
+    image: postgres:15-alpine
+    container_name: booking_postgres
+    environment:
+      POSTGRES_USER: your_booking_user
+      POSTGRES_PASSWORD: your_password
+      POSTGRES_DB: your_booking_db
+    ports:
+      - "5432:5432"
+    networks:
+      - microservices-net
+    deploy:
+      resources:
+        limits:
+          memory: 250M
+
+  # 3. RabbitMQ for Messaging (Limited to 250MB RAM)
+  # This handles async communication (e.g., "Payment Successful" -> "Send Email")
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: message_broker
+    ports:
+      - "5672:5672"   # App communication port
+      - "15672:15672" # Management Dashboard (Web UI)
+    environment:
+      RABBITMQ_DEFAULT_USER: your_user
+      RABBITMQ_DEFAULT_PASS: your_password
+    networks:
+      - microservices-net
+    deploy:
+      resources:
+        limits:
+          memory: 250M
+
+  # 4. Redis for Rate Limiting & Caching (Limited to 100MB RAM)
+  # Required for Spring Cloud Gateway Rate Limiter
+  redis:
+    image: redis:alpine
+    container_name: rate_limiter_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - microservices-net
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+
+networks:
+  microservices-net:
+    driver: bridge

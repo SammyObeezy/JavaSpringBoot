@@ -3,8 +3,10 @@ package org.example.booking.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.booking.client.UserClient;
 import org.example.booking.config.RabbitMQProperties;
 import org.example.booking.dto.BookingRequest;
+import org.example.booking.dto.UserDTO;
 import org.example.booking.model.Booking;
 import org.example.booking.model.Event;
 import org.example.booking.model.enums.BookingStatus;
@@ -26,6 +28,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final RabbitTemplate rabbitTemplate;
     private final RabbitMQProperties rabbitMQProperties;
+    private final UserClient userClient;
 
     @Override
     public Event createEvent(Event event) {
@@ -98,9 +101,12 @@ public class BookingServiceImpl implements BookingService {
      * call to the Auth Service to get the real number.
      */
     private String fetchUserPhoneNumber(Long userId) {
-        // TODO: Integrate OpenFeign Client here to call GET http://auth-service/api/users/{id}
-        // For now, return a placeholder so the code compiles and runs.
-        log.warn("Fetching user phone number from Auth Service (Mock implementation)");
-        return "0712345678";
+        try{
+            UserDTO user = userClient.getUserById(userId);
+            return user.getPhoneNumber();
+        } catch (Exception e){
+            log.error("Could not fetch user details for ID: {}", userId, e);
+            return "UNKNOWN";
+        }
     }
 }
