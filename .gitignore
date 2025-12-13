@@ -1,0 +1,4 @@
+ProjectBookMicroservice/**/src/main/resources/application.properties
+demo/src/main/resources/application.properties
+ecom-project/src/main/resources/application.properties
+simpleWebApp/src/main/resources/application.properties
