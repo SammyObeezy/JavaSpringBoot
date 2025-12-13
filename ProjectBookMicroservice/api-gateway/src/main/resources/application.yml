@@ -13,29 +13,33 @@ spring:
           lower-case-service-id: true
 
       routes:
-        # AUTH SERVICE - AUTH ENDPOINTS
+        # AUTH SERVICE - AUTH ENDPOINTS (Public)
         - id: auth-service-auth
           uri: lb://auth-service
           predicates:
             - Path=/api/auth/**
 
-        # AUTH SERVICE - USER ENDPOINTS
+        # AUTH SERVICE - USER ENDPOINTS (Public)
         - id: auth-service-users
           uri: lb://auth-service
           predicates:
             - Path=/api/users/**
 
-        # BOOKING SERVICE - MAIN ENDPOINTS
+        # BOOKING SERVICE - MAIN ENDPOINTS (Secured)
         - id: booking-service-main
           uri: lb://booking-service
           predicates:
             - Path=/api/bookings/**
+          filters:
+            - AuthenticationFilter # The Guard: Checks for JWT
 
-        # BOOKING SERVICE - EVENTS ENDPOINTS
+        # BOOKING SERVICE - EVENTS ENDPOINTS (Secured)
         - id: booking-service-events
           uri: lb://booking-service
           predicates:
             - Path=/api/bookings/events/**
+          filters:
+            - AuthenticationFilter # The Guard: Checks for JWT
 
 eureka:
   client:
