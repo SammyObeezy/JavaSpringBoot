@@ -9,6 +9,8 @@ import org.example.auth.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -19,24 +21,38 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody @Valid RegisterRequest request) {
         User user = authService.registerUser(request);
-        return ResponseEntity.ok("User registered successfully. Please check your phone for OTP.");
+        return ResponseEntity.ok(Map.of(
+                "message", "User registered successfully. Please check your email/phone for OTP.",
+                "userId", user.getId(),
+                "email", user.getEmail()
+                ));
     }
 
     @PostMapping("/verify")
     public ResponseEntity<?> verify(@RequestParam String email, @RequestParam String otp) {
         authService.verifyOtp(email, otp);
-        return ResponseEntity.ok("Account verified successfully.");
+        return ResponseEntity.ok(Map.of(
+                "message", "Account verified successfully. You can now login."
+        ));
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequest request) {
-        authService.login(request.getEmail(), request.getPassword());
-        return ResponseEntity.ok("Login successful.");
+        String token = authService.login(request.getEmail(), request.getPassword());
+
+        // Return it to the user
+        return ResponseEntity.ok(Map.of(
+                "message", "Login successful.",
+                "token", token,
+                "type", "Bearer"
+        ));
     }
 
     @PostMapping("/resend")
     public ResponseEntity<?> resendOtp(@RequestParam String email) {
         authService.resendOtp(email);
-        return ResponseEntity.ok("OTP resent successfully.");
+        return ResponseEntity.ok(Map.of(
+                "message", "OTP resent successfully."
+        ));
     }
 }

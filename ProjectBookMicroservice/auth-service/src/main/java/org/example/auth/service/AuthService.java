@@ -6,6 +6,6 @@ import org.example.auth.model.User;
 public interface AuthService {
     User registerUser(RegisterRequest request);
     void verifyOtp(String email, String otpCode);
-    void login(String email, String password);
+    String login(String email, String password);
     void resendOtp(String email);
 }

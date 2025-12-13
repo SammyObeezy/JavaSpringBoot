@@ -10,6 +10,7 @@ import org.example.auth.model.enums.AccountStatus;
 import org.example.auth.model.enums.UserRole;
 import org.example.auth.repository.OtpRepository;
 import org.example.auth.repository.UserRepository;
+import org.example.auth.utils.JwtUtil;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final OtpRepository otpRepository;
     private final NotificationService notificationService;
+    private final JwtUtil jwtUtil;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final SecureRandom secureRandom = new SecureRandom();
@@ -96,17 +98,17 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void login(String email, String password) {
+    public String login(String email, String password) {
         try {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("Invalid credentials"));
 
             if (user.getStatus() == AccountStatus.LOCKED) {
-                throw new RuntimeException("Account is locked");
+                throw new RuntimeException("Account is locked. Contact Support");
             }
 
             if (user.getStatus() == AccountStatus.PENDING_VERIFICATION) {
-                throw new RuntimeException("Account not verified");
+                throw new RuntimeException("Account not verified. Please verify your phone/email");
             }
 
             if (!passwordEncoder.matches(password, user.getPassword())) {
@@ -119,6 +121,8 @@ public class AuthServiceImpl implements AuthService {
             userRepository.save(user);
 
             log.info("User logged in: {}", email);
+
+            return jwtUtil.generateToken(email);
 
         } catch (Exception e) {
             log.error("Login failed for {}: {}", email, e.getMessage());
