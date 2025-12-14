@@ -38,7 +38,7 @@ public class MpesaService {
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Basic " + encodeKeys);
-        headers.set("Cache-Control", "no-code");
+        headers.set("Cache-Control", "no-cache");
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
@@ -62,11 +62,11 @@ public class MpesaService {
     public void initiateStkPush(Transaction transaction){
         try {
             String token = getAccessToken();
-            String timestamp = new SimpleDateFormat("yyyMMddHHmmss").format(new Date());
+            String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
 
             // Password = Base64(Shortcode + passkey + Timestamp)
             String passwordStr = mpesaConfig.getShortcode() + mpesaConfig.getPasskey() + timestamp;
-            String password = Base64.getEncoder().encodeToString(passwordStr.getBytes());
+            String password = Base64.getEncoder().encodeToString(passwordStr.getBytes(StandardCharsets.UTF_8));
 
             StkPushRequest request = new StkPushRequest();
             request.setBusinessShortCode(mpesaConfig.getShortcode());
