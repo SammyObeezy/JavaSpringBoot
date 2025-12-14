@@ -67,6 +67,22 @@ services:
       resources:
         limits:
           memory: 100M
+  # 5. MySQL for Payment Service (New)
+  # Stores Transaction Logs and M-Pesa Callback Data
+  mysql-payment:
+    image: mysql:8.0
+    container_name: payment_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: your_password
+      MYSQL_DATABASE: payment_db
+    ports:
+      - "3307:3306" # Mapped to host port 3307 to avoid conflict with Auth DB
+    networks:
+      - microservices-net
+    deploy:
+      resources:
+        limits:
+          memory: 300M
 
 networks:
   microservices-net:

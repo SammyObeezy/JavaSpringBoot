@@ -31,7 +31,7 @@ spring:
           predicates:
             - Path=/api/bookings/**
           filters:
-            - AuthenticationFilter # The Guard: Checks for JWT
+            - AuthenticationFilter
 
         # BOOKING SERVICE - EVENTS ENDPOINTS (Secured)
         - id: booking-service-events
@@ -39,7 +39,15 @@ spring:
           predicates:
             - Path=/api/bookings/events/**
           filters:
-            - AuthenticationFilter # The Guard: Checks for JWT
+            - AuthenticationFilter
+
+        # PAYMENT SERVICE - MAIN ENDPOINTS (Public for Callbacks, Secured for Status)
+        # Note: We keep this public for now to allow Safaricom Callbacks easily.
+        # In prod, we would split callback (public) vs status check (secured).
+        - id: payment-service
+          uri: lb://payment-service
+          predicates:
+            - Path=/api/payments/**
 
 eureka:
   client:
