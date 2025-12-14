@@ -1,41 +1,53 @@
 package org.example.payment.consumer;
 
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.payment.model.Transaction;
+import org.example.payment.model.PaymentStatus;
+import org.example.payment.repository.TransactionRepository;
+import org.example.payment.service.MpesaService;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class PaymentConsumer {
+
+    private final TransactionRepository transactionRepository;
+    private final MpesaService mpesaService; // Inject the real service
 
     // Listen to the queue defined in application.properties
     @RabbitListener(queues = "${rabbitmq.queue}")
     public void consumePaymentEvent(Map<String, Object> message){
-        log.info("=========================================");
-        log.info("PAYMENT REQUEST RECEIVED");
-        log.info("Booking ID: {}", message.get("bookingId"));
-        log.info("Amount: KES {}", message.get("amount"));
-        log.info("User Phone: {}", message.get("phoneNumber"));
+        log.info("PAYMENT EVENT RECEIVED: {}", message);
 
-        // Simulation of Daraja/M-Pesa API Call
-        processPayment(message);
-        log.info("=========================================");
-    }
-
-    private void processPayment(Map<String, Object> message) {
         try {
-            log.info("Initiating M-Pesa STK Push to {}...", message.get("phoneNumber"));
-            // Simulate processing time
-            Thread.sleep(2000);
-            log.info("Payment Successful! Transaction ID: REF123456");
+            // 1. Extract Data
+            Long bookingId = ((Number) message.get("bookingId")).longValue();
+            Long userId = ((Number) message.get("userId")).longValue();
+            BigDecimal amount = new BigDecimal(message.get("amount").toString());
+            String phoneNumber = (String) message.get("phoneNumber");
 
-            // TODO: In Phase 8, we will send a message BACK to Booking Service
-            // to update status from PENDING_PAYMENT to CONFIRMED.
-        } catch (InterruptedException e) {
-            log.error("Payment processing failed", e);
+            // 2. Create Transaction Record (PENDING)
+            Transaction transaction = new Transaction();
+            transaction.setBookingId(bookingId);
+            transaction.setUserId(userId);
+            transaction.setAmount(amount);
+            transaction.setPhoneNumber(phoneNumber);
+            transaction.setStatus(PaymentStatus.PENDING);
+
+            transactionRepository.save(transaction);
+            log.info("Transaction saved: [Booking ID: {}] [Status: PENDING]", bookingId);
+
+            // 3. Initiate Real M-Pesa Payment
+            mpesaService.initiateStkPush(transaction);
+        } catch (Exception e) {
+            log.error("Error processing payment message", e);
         }
     }
 }
