@@ -32,7 +32,8 @@ public class MpesaService {
     /**
      * 1. Get Access Token from Daraja API
      */
-    public String getAccessToken(){
+    public String getAccessToken() {
+        // 1. Prepare Credentials
         String keys = mpesaConfig.getConsumerKey() + ":" + mpesaConfig.getConsumerSecret();
         String encodeKeys = Base64.getEncoder().encodeToString(keys.getBytes(StandardCharsets.UTF_8));
 
@@ -43,19 +44,37 @@ public class MpesaService {
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
         try {
+            // --- FIX STARTS HERE ---
+            String url = mpesaConfig.getAuthUrl();
+            // If the URL doesn't already have the grant type, add it.
+            if (!url.contains("grant_type")) {
+                url += "?grant_type=client_credentials";
+            }
+            // -----------------------
+
+            System.out.println("DEBUG: Sending Auth Request to: " + url);
+
             ResponseEntity<AccessTokenResponse> response = restTemplate.exchange(
-                    mpesaConfig.getAuthUrl() + "?grant_type=client_credentials",
+                    url, // Use the fixed URL variable
                     HttpMethod.GET,
                     entity,
                     AccessTokenResponse.class
             );
+
+            if (response.getBody() == null) {
+                System.err.println("ERROR: Body is null");
+                return null;
+            }
+
+            System.out.println("DEBUG: Token Received: " + response.getBody().getAccessToken());
             return response.getBody().getAccessToken();
+
         } catch (Exception e) {
-            log.error("Failed to get Access Token", e);
-            throw new RuntimeException("M-pesa Auth Failed");
+            System.err.println("ERROR in getAccessToken: " + e.getMessage());
+            e.printStackTrace();
+            return null;
         }
     }
-
     /**
      * 2. Initiate STK Push
      */
@@ -95,6 +114,9 @@ public class MpesaService {
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             HttpEntity<StkPushRequest> entity = new HttpEntity<>(request, headers);
+
+            System.out.println("DEBUG: Raw Token: " + token);
+            System.out.println("DEBUG: Auth Header should be: Bearer " + token);
 
             log.info("Sending STK Push to {}", phone);
             ResponseEntity<StkPushResponse> response = restTemplate.exchange(

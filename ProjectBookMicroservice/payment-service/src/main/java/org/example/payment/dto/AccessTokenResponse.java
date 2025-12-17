@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 public class AccessTokenResponse {
-    @JsonProperty("access-token")
+    @JsonProperty("access_token")
     private String accessToken;
 
     @JsonProperty("expires_in")

@@ -20,7 +20,7 @@ public class StkPushRequest {
     @JsonProperty("Amount")
     private String amount;
 
-    @JsonProperty("PartA")
+    @JsonProperty("PartyA")
     private String partyA; // User's phone
 
     @JsonProperty("PartyB")
