@@ -1,6 +1,4 @@
 # Spring Boot Microservices Payment System with M-Pesa Integration
-<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/9994d2a7-e4cc-4a21-81eb-1b041fadbfaa" />
-
 ## Table of Contents
 
 - [Introduction](#introduction)
@@ -32,61 +30,7 @@ This project is a **production-ready, event-driven microservices architecture** 
 
 ## Architecture Overview
 
-```mermaid
-graph TD
-    %% Styling
-    classDef service fill:#f9f,stroke:#333,stroke-width:2px,color:black;
-    classDef db fill:#ff9,stroke:#333,stroke-width:2px,color:black;
-    classDef ext fill:#9cf,stroke:#333,stroke-width:2px,color:black;
-    classDef infra fill:#ddd,stroke:#333,stroke-width:2px,color:black;
-    classDef gateway fill:#f96,stroke:#333,stroke-width:2px,color:black;
-
-    %% Actors and External Systems
-    User((User / Client))
-    Safaricom[("Safaricom M-Pesa Daraja API")]:::ext
-
-    %% Infrastructure
-    Eureka(Eureka Server Service Registry):::infra
-    RabbitMQ(RabbitMQ Message Broker):::infra
-    
-    %% Gateway
-    APIGateway[API Gateway Spring Cloud Gateway]:::gateway
-
-    %% Microservices Ecosystem
-    subgraph "Internal Network"
-        BookingService[Booking Service]:::service
-        PaymentService[Payment Service]:::service
-    end
-
-    %% Databases
-    MySQL_B[(Booking DB)]:::db
-    MySQL_P[(Payment DB)]:::db
-
-    %% Relationships - Entry Flow
-    User -- "1. Request (POST)" --> APIGateway
-    APIGateway -.-> Eureka
-    APIGateway -- "2. Route Request" --> BookingService
-
-    %% Booking Flow
-    BookingService -- "3. Save Booking" --> MySQL_B
-    BookingService -.-> Eureka
-    
-    %% Async Communication
-    BookingService -- "4. Publish Event" --> RabbitMQ
-    RabbitMQ -- "5. Consume Event" --> PaymentService
-
-    %% Payment Flow
-    PaymentService -.-> Eureka
-    PaymentService -- "6. Create Transaction" --> MySQL_P
-    
-    %% M-Pesa Interaction
-    PaymentService -- "7. Auth & STK Push" --> Safaricom
-    Safaricom -.-> |"8. Push STK Popup"| User
-    
-    %% Callback Flow
-    Safaricom -- "9. Async Callback" --> PaymentService
-    PaymentService -- "10. Update Status" --> MySQL_P
-```
+<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/9994d2a7-e4cc-4a21-81eb-1b041fadbfaa" />
 
 ### Flow Description:
 
