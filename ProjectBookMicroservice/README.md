@@ -30,7 +30,8 @@ This project is a **production-ready, event-driven microservices architecture** 
 
 ## Architecture Overview
 
-<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/9994d2a7-e4cc-4a21-81eb-1b041fadbfaa" />
+<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/28188b25-7c15-44d7-b081-193a1f33a4f4" />
+
 
 ### Flow Description:
 
