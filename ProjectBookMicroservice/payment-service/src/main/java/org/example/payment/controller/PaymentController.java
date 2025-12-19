@@ -1,24 +1,24 @@
-package org.example.payment.controller; // or your package name
+package org.example.payment.controller; // Make sure this matches your Main App package
 
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.example.payment.dto.MpesaCallbackResponse;
+import org.example.payment.service.MpesaService;
+import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/mobile-money")
 public class PaymentController {
 
-    // Safaricom hits this URL: /mobile-money/callback
+    private final MpesaService mpesaService;
+
+    public PaymentController(MpesaService mpesaService) {
+        this.mpesaService = mpesaService;
+    }
+
     @PostMapping("/callback")
-    public void processMpesaCallback(@RequestBody Map<String, Object> payload) {
-
-        // 1. Log the JSON so we can see the payment details!
-        System.out.println("----------- MPESA CALLBACK RECEIVED -----------");
-        System.out.println(payload);
-        System.out.println("-----------------------------------------------");
-
-        // TODO: Later we will extract the ResultCode and update the Database
+    public void processCallback(@RequestBody MpesaCallbackResponse payload) {
+        log.info("Received M-Pesa Callback payload.");
+        mpesaService.updateTransactionStatus(payload);
     }
 }

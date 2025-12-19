@@ -6,9 +6,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.payment.config.MpesaConfig;
 import org.example.payment.dto.AccessTokenResponse;
+import org.example.payment.dto.MpesaCallbackResponse;
 import org.example.payment.dto.StkPushRequest;
 import org.example.payment.dto.StkPushResponse;
 import org.example.payment.model.Transaction;
+import org.example.payment.model.PaymentStatus;
 import org.example.payment.repository.TransactionRepository;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -44,34 +46,33 @@ public class MpesaService {
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
         try {
-            // --- FIX STARTS HERE ---
             String url = mpesaConfig.getAuthUrl();
-            // If the URL doesn't already have the grant type, add it.
             if (!url.contains("grant_type")) {
                 url += "?grant_type=client_credentials";
             }
-            // -----------------------
 
-            System.out.println("DEBUG: Sending Auth Request to: " + url);
+            log.debug("Sending Auth Request to: {}", url);
 
             ResponseEntity<AccessTokenResponse> response = restTemplate.exchange(
-                    url, // Use the fixed URL variable
+                    url,
                     HttpMethod.GET,
                     entity,
                     AccessTokenResponse.class
             );
 
             if (response.getBody() == null) {
-                System.err.println("ERROR: Body is null");
+                log.error("M-Pesa Auth Failed: Response Body is null");
                 return null;
             }
 
-            System.out.println("DEBUG: Token Received: " + response.getBody().getAccessToken());
-            return response.getBody().getAccessToken();
+            String token = response.getBody().getAccessToken();
 
+            String maskedToken = token.length() > 5 ? token.substring(0, 5) + "*****" : token;
+            log.info("Auth Token Received: {}", maskedToken);
+
+            return token;
         } catch (Exception e) {
-            System.err.println("ERROR in getAccessToken: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error in getAccessToken: {}", e.getMessage());
             return null;
         }
     }
@@ -115,8 +116,8 @@ public class MpesaService {
 
             HttpEntity<StkPushRequest> entity = new HttpEntity<>(request, headers);
 
-            System.out.println("DEBUG: Raw Token: " + token);
-            System.out.println("DEBUG: Auth Header should be: Bearer " + token);
+//            System.out.println("DEBUG: Raw Token: " + token);
+//            System.out.println("DEBUG: Auth Header should be: Bearer " + token);
 
             log.info("Sending STK Push to {}", phone);
             ResponseEntity<StkPushResponse> response = restTemplate.exchange(
@@ -139,5 +140,27 @@ public class MpesaService {
             // Don't throw exception here to avoid RabbitMQ infinite retry loops immediately
             // In prod, you might want a Dead Letter Queue strategy
         }
+    }
+    public void updateTransactionStatus(MpesaCallbackResponse response) {
+        MpesaCallbackResponse.StkCallback callback = response.getBody().getStkCallback();
+        String checkoutId = callback.getCheckoutRequestID();
+
+        log.info("Processing Callback [CheckoutID: {}]", checkoutId);
+
+        Transaction transaction = transactionRepository.findByCheckoutRequestId(checkoutId)
+                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+
+        if (callback.getResultCode() == 0) {
+            log.info("Payment Status: SUCCESS");
+            transaction.setStatus(PaymentStatus.COMPLETED);
+        } else {
+            // Log failure reason clearly
+            log.warn("Payment Status: FAILED [Reason: {}]", callback.getResultDesc());
+            transaction.setStatus(PaymentStatus.FAILED);
+            transaction.setFailureReason(callback.getResultDesc());
+        }
+
+        transactionRepository.save(transaction);
+        log.info("Transaction updated successfully.");
     }
 }
