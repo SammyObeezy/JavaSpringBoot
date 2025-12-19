@@ -1,6 +1,5 @@
-<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/14f06533-6a6a-40d2-b598-1790ce3a5074" />
-
 # Spring Boot Microservices Payment System with M-Pesa Integration
+<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/9994d2a7-e4cc-4a21-81eb-1b041fadbfaa" />
 
 ## Table of Contents
 
@@ -44,14 +43,14 @@ graph TD
 
     %% Actors and External Systems
     User((User / Client))
-    Safaricom[("Safaricom M-Pesa<br/>(Daraja API)")]:::ext
+    Safaricom[("Safaricom M-Pesa Daraja API")]:::ext
 
     %% Infrastructure
-    Eureka(Eureka Server<br/>Service Registry):::infra
-    RabbitMQ(RabbitMQ<br/>Message Broker):::infra
+    Eureka(Eureka Server Service Registry):::infra
+    RabbitMQ(RabbitMQ Message Broker):::infra
     
     %% Gateway
-    APIGateway[API Gateway<br/>(Spring Cloud Gateway)]:::gateway
+    APIGateway[API Gateway Spring Cloud Gateway]:::gateway
 
     %% Microservices Ecosystem
     subgraph "Internal Network"
