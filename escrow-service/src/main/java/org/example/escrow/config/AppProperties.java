@@ -22,6 +22,8 @@ public class AppProperties {
     public static class Security {
         private long otpExpirationMinutes;
         private int maxLoginAttempts;
+        //32-byte AES Key (Base64 encoded)
+        private String encryptionKey;
     }
 
     @Data
