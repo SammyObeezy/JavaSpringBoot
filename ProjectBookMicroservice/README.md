@@ -30,19 +30,19 @@ This project is a **production-ready, event-driven microservices architecture** 
 
 ## Architecture Overview
 
-<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/9994d2a7-e4cc-4a21-81eb-1b041fadbfaa" />
+<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/28188b25-7c15-44d7-b081-193a1f33a4f4" />
 
 ### Flow Description:
-
-1. **Request Entry**: User submits a request through the API Gateway (single entry point)
-2. **Routing**: API Gateway routes the request to the appropriate service (Booking Service)
-3. **Booking Creation**: Booking Service processes and saves the booking
-4. **Event Publishing**: Booking Service publishes `PaymentInitiatedEvent` to RabbitMQ
-5. **Event Consumption**: Payment Service consumes the event from the queue
-6. **Payment Initiation**: Payment Service initiates M-Pesa STK Push and saves initial transaction
-7. **User Payment**: Customer completes payment on their phone
-8. **Callback Processing**: M-Pesa sends callback to Ngrok tunnel (port 8083), which forwards to Payment Service endpoint
-9. **Status Update**: Payment Service updates transaction status in MySQL database
+1. **Authentication**: User sends credentials to the API Gateway, which routes to the Auth Service to validate against the Auth DB and issue a JWT Token.
+2. **Request Entry**: User submits a booking request (with Token) through the API Gateway (single entry point).
+3. **Routing**: API Gateway routes the authenticated request to the Booking Service.
+4. **Booking Creation**: Booking Service processes the request and saves the booking data into the Booking DB.
+5. **Event Publishing**: Booking Service publishes a PaymentInitiatedEvent to the RabbitMQ exchange.
+6. **Event Consumption**: Payment Service consumes the event from the RabbitMQ queue.
+7. **Payment Initiation**: Payment Service initiates the M-Pesa STK Push and saves the initial transaction (PENDING) into the Payment DB.
+8. **User Payment**: Customer receives the prompt and completes the payment on their mobile phone.
+9. **Callback Processing**: M-Pesa sends the callback to the Ngrok tunnel (port 8083), which forwards the payload to the Payment Service endpoint.
+10. **Status Update**: Payment Service validates the callback and updates the final transaction status (PAID/FAILED) in the Payment DB.
 
 ## Key Features
 
