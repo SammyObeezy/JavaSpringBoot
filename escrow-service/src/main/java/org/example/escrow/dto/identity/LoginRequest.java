@@ -1,15 +1,16 @@
 package org.example.escrow.dto.identity;
 
-
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+
 
 @Data
 public class LoginRequest {
 
-    // Use can login with Email OR Phone
-    @NotBlank(message = "Email or Phone is required")
-    private String identifier;
+    @Email(message = "Invalid email format")
+    @NotBlank(message = "Email is required")
+    private String email;
 
     @NotBlank(message = "Password is required")
     private String password;

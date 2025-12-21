@@ -1,9 +1,13 @@
 package org.example.escrow.config;
 
-
 import lombok.RequiredArgsConstructor;
+import org.example.escrow.security.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -20,25 +24,43 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private final AppProperties appProperties;
+    private final CustomUserDetailsService userDetailsService; // Inject our new service
 
     @Bean
     public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
     }
 
+    // 1. Define the AuthenticationProvider (Links DB Users + Password Encoder)
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
+    }
+
+    // 2. Expose the AuthenticationManager (Required by AuthServiceImpl)
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         http
-                // 1. Disable CSRF (Because we are using stateless JWT/APIs, not browser sessions
+                // Disable CSRF (Stateless API)
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // 2.Set Session Management to Stateless (No JSESSIONID cookies)
+                // Set Session Management to Stateless
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // 3. Define Access Rules
-                .authorizeHttpRequests(auth ->auth
-                        // Allow public access to Auth endpoints (Register, Login, OTP)
-                        // We use the prefix from AppProperties to keep it dynamic (e.g., /api/v1/auth/**)
+                // Configure Provider
+                .authenticationProvider(authenticationProvider())
+
+                // Define Access Rules
+                .authorizeHttpRequests(auth -> auth
+                        // Allow public access to Auth endpoints (Register, Login, Verify)
                         .requestMatchers(appProperties.getApi().getPrefix() + "/auth/**").permitAll()
 
                         // Lock everything else
