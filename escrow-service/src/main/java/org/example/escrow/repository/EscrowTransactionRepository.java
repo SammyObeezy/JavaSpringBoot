@@ -10,9 +10,11 @@ import java.util.UUID;
 public interface EscrowTransactionRepository extends JpaRepository<EscrowTransaction, UUID> {
 
     // "My Orders" (As a Buyer)
-    List<EscrowTransaction> findByBuyerIdOrderByCreatedAtDesc(UUID buyerId);
+    // Fixed: Changed findByBuyerId to findByBuyId to match the 'private User buy' field in the Entity
+    List<EscrowTransaction> findByBuyIdOrderByCreatedAtDesc(UUID buyerId);
 
     // "My Sales" (As a Merchant)
+    // This works because the field is named 'private MerchantProfile merchant'
     List<EscrowTransaction> findByMerchantIdOrderByCreatedAtDesc(UUID merchantId);
 
     // For Cron Jobs: Find stuck transactions (e.g., waiting payment too long)

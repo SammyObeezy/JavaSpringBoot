@@ -18,7 +18,7 @@ public class MerchantProfile extends BaseEntity{
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    @Column(name = "business_enum", nullable = false)
+    @Column(name = "business_name", nullable = false)
     private String businessName;
 
     @Column(name = "business_reg_no")

@@ -16,7 +16,7 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = ValidationUtils.PASSWORD_REGEX, message = "Invalid number format. Use Use 2547XXXXXXXX")
+    @Pattern(regexp = ValidationUtils.PHONE_REGEX, message = "Invalid number format. Use Use 2547XXXXXXXX")
     private String phoneNumber;
 
     @NotBlank(message = "Password is required")

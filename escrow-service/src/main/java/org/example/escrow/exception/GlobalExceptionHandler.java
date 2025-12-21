@@ -48,7 +48,7 @@ public class GlobalExceptionHandler {
             errors.put(error.getField(), error.getDefaultMessage());
         }
 
-        logger.warn("Validation Fialed: {}", errors);
+        logger.warn("Validation Failed: {}", errors);
 
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())

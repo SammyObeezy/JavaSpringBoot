@@ -18,7 +18,7 @@ public class LedgerEntry extends  BaseEntity{
     @Column(name = "transaction_id", nullable = false)
     private UUID transactionId;
 
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "wallet_id", nullable = false)
     private Wallet wallet;
 

@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 @Builder
 public class MerchantService extends BaseEntity{
 
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "merchant_id", nullable = false)
     private MerchantProfile merchant;
 

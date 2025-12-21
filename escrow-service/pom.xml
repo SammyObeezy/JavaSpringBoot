@@ -20,7 +20,23 @@
     <properties>
         <java.version>22</java.version>
         <org.mapstruct.version>1.5.5.Final</org.mapstruct.version>
+        <!-- Critical: Override Lombok version to support Java 22 (1.18.30 fails with JDK 22) -->
+        <lombok.version>1.18.32</lombok.version>
+        <!-- Updated to 2.26.0 to bypass local cache failure -->
+        <aws.sdk.version>2.26.0</aws.sdk.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${aws.sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!-- 1. WEB: REST APIs & Tomcat -->
@@ -62,6 +78,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
             <optional>true</optional>
         </dependency>
 
@@ -92,13 +109,18 @@
             <version>${org.mapstruct.version}</version>
         </dependency>
 
+        <!-- 11. AWS SDK (SNS for SMS) -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sns</artifactId>
+        </dependency>
+
         <!-- TEST DEPENDENCIES -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Testcontainers: For running real Postgres in tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-testcontainers</artifactId>
@@ -135,14 +157,26 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
                 <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
                     <annotationProcessorPaths>
-                        <!-- Lombok must come first -->
+                        <!-- 1. Lombok Processor -->
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
                         </path>
-                        <!-- MapStruct comes second to see Lombok's getters/setters -->
+
+                        <!-- 2. Lombok-MapStruct Binding (CRITICAL FIX) -->
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok-mapstruct-binding</artifactId>
+                            <version>0.2.0</version>
+                        </path>
+
+                        <!-- 3. MapStruct Processor -->
                         <path>
                             <groupId>org.mapstruct</groupId>
                             <artifactId>mapstruct-processor</artifactId>

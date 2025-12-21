@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
 public class AppProperties {
 
     private final Security security = new Security();
+    private final Aws aws = new Aws();
     private final Escrow escrow = new Escrow();
     private final Defaults defaults = new Defaults();
     private final Api api = new Api();
@@ -24,6 +25,14 @@ public class AppProperties {
         private int maxLoginAttempts;
         //32-byte AES Key (Base64 encoded)
         private String encryptionKey;
+    }
+
+    @Data
+    public static class Aws{
+        private String accessKeyId;
+        private String secretAccessKey;
+        private String region;
+        private String snsSenderId;
     }
 
     @Data
