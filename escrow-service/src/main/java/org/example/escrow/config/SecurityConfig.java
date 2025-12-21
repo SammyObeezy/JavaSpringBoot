@@ -2,6 +2,7 @@ package org.example.escrow.config;
 
 import lombok.RequiredArgsConstructor;
 import org.example.escrow.security.CustomUserDetailsService;
+import org.example.escrow.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,6 +17,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -24,14 +26,14 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private final AppProperties appProperties;
-    private final CustomUserDetailsService userDetailsService; // Inject our new service
+    private final CustomUserDetailsService userDetailsService;
+    private final JwtAuthenticationFilter jwtAuthFilter; // Inject the filter
 
     @Bean
     public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
     }
 
-    // 1. Define the AuthenticationProvider (Links DB Users + Password Encoder)
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -40,7 +42,6 @@ public class SecurityConfig {
         return authProvider;
     }
 
-    // 2. Expose the AuthenticationManager (Required by AuthServiceImpl)
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
@@ -49,21 +50,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         http
-                // Disable CSRF (Stateless API)
                 .csrf(AbstractHttpConfigurer::disable)
-
-                // Set Session Management to Stateless
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // Configure Provider
                 .authenticationProvider(authenticationProvider())
 
-                // Define Access Rules
-                .authorizeHttpRequests(auth -> auth
-                        // Allow public access to Auth endpoints (Register, Login, Verify)
-                        .requestMatchers(appProperties.getApi().getPrefix() + "/auth/**").permitAll()
+                // Add the JWT Filter BEFORE the standard username/password filter
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 
-                        // Lock everything else
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(appProperties.getApi().getPrefix() + "/auth/**").permitAll()
                         .anyRequest().authenticated()
                 );
         return http.build();

@@ -1,19 +1,16 @@
 package org.example.escrow.repository;
 
 import org.example.escrow.model.MerchantProfile;
-import org.example.escrow.model.enums.VerificationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@Repository
 public interface MerchantProfileRepository extends JpaRepository<MerchantProfile, UUID> {
 
+    // Find profile linked to a specific user
     Optional<MerchantProfile> findByUserId(UUID userId);
 
-    // For Admin Dashboard: Find all pending merchants
-    List<MerchantProfile> findByVerificationStatus(VerificationStatus status);
+    // Check for duplicate business registration numbers
+    boolean existsByBusinessRegNo(String businessRegNo);
 }
