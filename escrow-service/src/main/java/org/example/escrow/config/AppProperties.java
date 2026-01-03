@@ -18,6 +18,8 @@ public class AppProperties {
     private final Escrow escrow = new Escrow();
     private final Defaults defaults = new Defaults();
     private final Api api = new Api();
+    // Added Mpesa configuration object
+    private final Mpesa mpesa = new Mpesa();
 
     @Data
     public static class Security {
@@ -52,5 +54,17 @@ public class AppProperties {
     @Data
     public static class Api {
         private String prefix;
+    }
+
+    @Data
+    public static class Mpesa {
+        private String consumerKey;
+        private String consumerSecret;
+        private String passkey;
+        private String shortcode;
+        private String transactionType;
+        private String authUrl;
+        private String stkPushUrl;
+        private String callbackUrl;
     }
 }

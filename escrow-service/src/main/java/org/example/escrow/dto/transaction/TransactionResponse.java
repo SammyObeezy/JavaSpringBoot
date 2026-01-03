@@ -19,7 +19,7 @@ public class TransactionResponse {
     // Financials
     private BigDecimal itemPrice;
     private BigDecimal platformFee;
-    private BigDecimal totalToPay;
+    private BigDecimal totalAmount;
     private String currency;
 
     private LocalDateTime createdAt;

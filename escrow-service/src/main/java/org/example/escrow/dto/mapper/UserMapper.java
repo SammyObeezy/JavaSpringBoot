@@ -21,6 +21,9 @@ public interface UserMapper {
     @Mapping(target = "passwordHash", ignore = true)
     @Mapping(target = "active", constant = "true")
     @Mapping(target = "phoneVerified", constant = "false")
-    @Mapping(target = "phoneNumber", source = "phoneNumber") // Explicit mapping for clarity
+    @Mapping(target = "phoneNumber", source = "phoneNumber")
+    // These should map automatically, but being explicit helps debugging
+    @Mapping(target = "firstName", source = "firstName")
+    @Mapping(target = "lastName", source = "lastName")
     User toEntity(RegisterRequest request);
 }

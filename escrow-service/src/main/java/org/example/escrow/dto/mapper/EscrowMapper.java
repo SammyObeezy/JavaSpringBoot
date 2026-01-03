@@ -14,6 +14,6 @@ public interface EscrowMapper {
     @Mapping(target = "serviceName", source = "service.name")
     @Mapping(target = "merchantName", source = "merchant.businessName")
     @Mapping(target = "itemPrice", source = "service.price")
-    @Mapping(target = "totalPay", source = "totalAmount")
+    @Mapping(target = "totalAmount", source = "totalAmount")
     TransactionResponse toResponse(EscrowTransaction transaction);
 }

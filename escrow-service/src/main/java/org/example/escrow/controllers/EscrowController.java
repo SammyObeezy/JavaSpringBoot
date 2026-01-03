@@ -1,24 +1,20 @@
 package org.example.escrow.controllers;
 
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.escrow.dto.identity.ApiResponse;
 import org.example.escrow.dto.mapper.EscrowMapper;
 import org.example.escrow.dto.transaction.InitiateTransactionRequest;
 import org.example.escrow.dto.transaction.TransactionResponse;
-import org.example.escrow.model.EscrowTransaction;
 import org.example.escrow.repository.UserRepository;
 import org.example.escrow.service.EscrowTransactionServiceImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -37,8 +33,7 @@ public class EscrowController {
 
         UUID buyerId = getUserIdFromDetails(userDetails);
 
-        EscrowTransaction transaction = transactionService.initiateTransaction(buyerId, request);
-        TransactionResponse response = escrowMapper.toResponse(transaction);
+        TransactionResponse response = transactionService.initiateTransaction(buyerId, request);
 
         return new ResponseEntity<>(
                 ApiResponse.success(response, "Transaction initiated. Waiting for payment."),
@@ -46,7 +41,36 @@ public class EscrowController {
         );
     }
 
-    private UUID getUserIdFromDetails(UserDetails userDetails){
+    @PostMapping("/{transactionId}/pay")
+    public ResponseEntity<ApiResponse<TransactionResponse>> payTransaction(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID transactionId) {
+
+        UUID buyerId = getUserIdFromDetails(userDetails);
+
+        TransactionResponse response = transactionService.payTransaction(buyerId, transactionId);
+
+        return new ResponseEntity<>(
+                ApiResponse.success(response, "Payment successful. Funds held in Escrow."),
+                HttpStatus.OK
+        );
+    }
+
+    // --- NEW HISTORY ENDPOINT ---
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<TransactionResponse>>> getHistory(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        // The service decides what data to return based on the user's Role (User, Merchant, or Admin)
+        List<TransactionResponse> history = transactionService.getTransactionHistory(userDetails.getUsername());
+
+        return new ResponseEntity<>(
+                ApiResponse.success(history, "Transaction history retrieved."),
+                HttpStatus.OK
+        );
+    }
+
+    private UUID getUserIdFromDetails(UserDetails userDetails) {
         return userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"))
                 .getId();
