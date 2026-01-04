@@ -27,7 +27,7 @@ public class SecurityConfig {
 
     private final AppProperties appProperties;
     private final CustomUserDetailsService userDetailsService;
-    private final JwtAuthenticationFilter jwtAuthFilter; // Inject the filter
+    private final JwtAuthenticationFilter jwtAuthFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder(){
@@ -53,12 +53,16 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
-
-                // Add the JWT Filter BEFORE the standard username/password filter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-
                 .authorizeHttpRequests(auth -> auth
+                        // 1. Allow Auth Endpoints (Login, Register)
                         .requestMatchers(appProperties.getApi().getPrefix() + "/auth/**").permitAll()
+
+                        // 2. Allow M-Pesa Callback (CRITICAL FIX)
+                        // Safaricom calls this without a token, so it must be public.
+                        .requestMatchers(appProperties.getApi().getPrefix() + "/mpesa/callback").permitAll()
+
+                        // 3. Lock everything else
                         .anyRequest().authenticated()
                 );
         return http.build();

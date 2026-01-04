@@ -135,11 +135,21 @@
         </dependency>
 
         <!-- TEST DEPENDENCIES -->
+
+        <!-- Includes JUnit 5, Mockito, AssertJ, Hamcrest, JsonPath -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- NEW: Needed to mock Auth Users in tests (@WithMockUser) -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-testcontainers</artifactId>

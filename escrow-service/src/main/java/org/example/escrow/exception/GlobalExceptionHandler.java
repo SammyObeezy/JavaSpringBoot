@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -61,7 +63,26 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-    // 3. Catch-all for unexpected System Errors (NullPointer, Database down, etc.)
+    // 3. Handle Security/Auth Exceptions (Fix for 500 vs 403 issue)
+    @ExceptionHandler({AccessDeniedException.class, AuthenticationException.class})
+    public ResponseEntity<ErrorResponse> handleSecurityException(RuntimeException ex, HttpServletRequest request) {
+        HttpStatus status = (ex instanceof AccessDeniedException) ? HttpStatus.FORBIDDEN : HttpStatus.UNAUTHORIZED;
+        String errorMsg = (ex instanceof AccessDeniedException) ? "Access Denied" : "Unauthorized";
+
+        logger.warn("Security Error: {}", ex.getMessage());
+
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(status.value())
+                .error(errorMsg)
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        return new ResponseEntity<>(error, status);
+    }
+
+    // 4. Catch-all for unexpected System Errors (NullPointer, Database down, etc.)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex, HttpServletRequest request){
         logger.error("Unexpected System Error: ", ex); // Log stack trace here for debugging
