@@ -15,16 +15,23 @@ public class AwsConfig {
     private final AppProperties appProperties;
 
     @Bean
-    public SnsClient snsClient(){
-        AppProperties.Aws awsProps = appProperties.getAws();
+    public SnsClient snsClient() {
+        // 1. Extract credentials from AppProperties
+        String accessKey = appProperties.getAws().getAccessKeyId();
+        String secretKey = appProperties.getAws().getSecretAccessKey();
+        String regionString = appProperties.getAws().getRegion();
 
+        // 2. Validate (Fail fast if missing or default)
+        // This helps debug configuration issues immediately on startup
+        if (accessKey == null || accessKey.contains("ChangeMe") || secretKey == null) {
+            throw new RuntimeException("Invalid AWS Credentials in application.properties. Please configure app.config.aws.*");
+        }
+
+        // 3. Build the Client
         return SnsClient.builder()
-                .region(Region.of(awsProps.getRegion()))
+                .region(Region.of(regionString))
                 .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(
-                                awsProps.getAccessKeyId(),
-                                awsProps.getSecretAccessKey()
-                        )
+                        AwsBasicCredentials.create(accessKey, secretKey)
                 ))
                 .build();
     }
