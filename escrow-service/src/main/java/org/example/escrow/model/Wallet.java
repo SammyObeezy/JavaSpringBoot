@@ -32,4 +32,7 @@ public class Wallet extends BaseEntity{
     @Column(name = "wallet_type")
     @Builder.Default
     private WalletType walletType = WalletType.PERSONAL;
+
+    @Version
+    private Long version;
 }

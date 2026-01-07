@@ -3,7 +3,7 @@ package org.example.escrow.controllers;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.escrow.dto.identity.ApiResponse;
-import org.example.escrow.dto.mapper.EscrowMapper;
+// import org.example.escrow.dto.mapper.EscrowMapper;
 import org.example.escrow.dto.transaction.InitiateTransactionRequest;
 import org.example.escrow.dto.transaction.TransactionResponse;
 import org.example.escrow.repository.UserRepository;
@@ -24,7 +24,7 @@ public class EscrowController {
 
     private final EscrowTransactionServiceImpl transactionService;
     private final UserRepository userRepository;
-    private final EscrowMapper escrowMapper;
+//    private final EscrowMapper escrowMapper;
 
     @PostMapping("/initiate")
     public ResponseEntity<ApiResponse<TransactionResponse>> initiateTransaction(

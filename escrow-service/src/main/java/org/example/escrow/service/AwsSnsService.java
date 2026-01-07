@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.escrow.config.AppProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
@@ -22,6 +23,7 @@ public class AwsSnsService implements NotificationService {
     private final AppProperties appProperties;
 
     @Override
+    @Async
     public void sendSms(String phoneNumber, String message) {
         try {
             String formattedPhone = phoneNumber.startsWith("+") ? phoneNumber : "+" + phoneNumber;

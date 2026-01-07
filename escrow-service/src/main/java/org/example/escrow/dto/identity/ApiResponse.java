@@ -36,6 +36,8 @@ public class ApiResponse<T> {
                 .build();
     }
 
+    // Suppress unused warning as this is a utility method for future use
+    @SuppressWarnings("unused")
     public static <T> ApiResponse<T> error(String message) {
         return ApiResponse.<T>builder()
                 .success(false)

@@ -1,6 +1,5 @@
 package org.example.escrow.service;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.example.escrow.config.AppProperties;
 import org.example.escrow.dto.mapper.EscrowMapper;
@@ -20,6 +19,7 @@ import org.example.escrow.repository.MerchantServiceRepository;
 import org.example.escrow.repository.UserRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -34,7 +34,7 @@ public class EscrowTransactionServiceImpl {
     private final EscrowTransactionRepository transactionRepository;
     private final MerchantServiceRepository merchantServiceRepository;
     private final UserRepository userRepository;
-    private final MerchantProfileRepository merchantProfileRepository; // Added for Merchant lookup
+    private final MerchantProfileRepository merchantProfileRepository;
     private final AppProperties appProperties;
     private final WalletServiceImpl walletService;
     private final EscrowMapper escrowMapper;
@@ -73,6 +73,7 @@ public class EscrowTransactionServiceImpl {
                 .build();
 
         EscrowTransaction saved = transactionRepository.save(transaction);
+        // The Mapper inside this @Transactional method will safely load lazy fields
         return escrowMapper.toResponse(saved);
     }
 
@@ -101,7 +102,10 @@ public class EscrowTransactionServiceImpl {
         return escrowMapper.toResponse(saved);
     }
 
-    // --- NEW METHOD FOR HISTORY ---
+    // NEW METHOD FOR HISTORY
+    // Added @Transactional(readOnly=true) to keep the DB Session open while mapping DTOs.
+    // This solves the LazyInitializationException and removes the need for manual "get" calls.
+    @Transactional(readOnly = true)
     public List<TransactionResponse> getTransactionHistory(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
@@ -109,32 +113,21 @@ public class EscrowTransactionServiceImpl {
         List<EscrowTransaction> transactions;
 
         if (user.getRole() == UserRole.ROLE_ADMIN) {
-            // Admin sees EVERYTHING
             transactions = transactionRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
         }
         else if (user.getRole() == UserRole.ROLE_MERCHANT) {
-            // Merchant sees sales where they are the seller
             MerchantProfile profile = merchantProfileRepository.findByUserId(user.getId())
                     .orElseThrow(() -> new BusinessLogicException("Merchant profile not found"));
             transactions = transactionRepository.findByMerchantIdOrderByCreatedAtDesc(profile.getId());
         }
         else {
-            // Standard User sees purchases they made
             transactions = transactionRepository.findByBuyIdOrderByCreatedAtDesc(user.getId());
         }
 
-        // Convert to DTOs
-        // Note: Because of Lazy Loading, we rely on the Service method being @Transactional
-        // OR the entities being initialized. Since this is a read-only Fetch,
-        // passing through Mapper inside the Transactional scope (or Open-Session-In-View) usually works.
-        // To be safe, we map here.
+        // The mapper will now automatically fetch lazy fields (service, merchant)
+        // because the Transaction/Session is still active.
         return transactions.stream()
-                .map(transaction -> {
-                    // Safe access to ensure lazy fields are loaded
-                    if (transaction.getService() != null) transaction.getService().getName();
-                    if (transaction.getMerchant() != null) transaction.getMerchant().getBusinessName();
-                    return escrowMapper.toResponse(transaction);
-                })
+                .map(escrowMapper::toResponse)
                 .collect(Collectors.toList());
     }
 }

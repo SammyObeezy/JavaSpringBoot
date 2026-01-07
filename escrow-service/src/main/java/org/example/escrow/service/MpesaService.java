@@ -55,7 +55,14 @@ public class MpesaService {
             if (!response.isSuccessful()) {
                 throw new BusinessLogicException("Failed to authenticate with M-Pesa");
             }
-            MpesaDto.AccessTokenResponse tokenResponse = objectMapper.readValue(response.body().string(), MpesaDto.AccessTokenResponse.class);
+
+            // Fix: Check for null body to avoid NullPointerException
+            ResponseBody responseBody = response.body();
+            if (responseBody == null) {
+                throw new BusinessLogicException("M-Pesa authentication failed: Empty response");
+            }
+
+            MpesaDto.AccessTokenResponse tokenResponse = objectMapper.readValue(responseBody.string(), MpesaDto.AccessTokenResponse.class);
             return tokenResponse.getAccessToken();
         } catch (IOException e) {
             log.error("M-Pesa Auth Error", e);
@@ -101,14 +108,20 @@ public class MpesaService {
                 .build();
 
         try (Response response = okHttpClient.newCall(request).execute()) {
-            String responseBody = response.body().string();
+            // Fix: Check for null body first
+            ResponseBody responseBody = response.body();
+            if (responseBody == null) {
+                throw new BusinessLogicException("M-Pesa STK Push failed: Empty response");
+            }
+
+            String responseString = responseBody.string();
 
             if (!response.isSuccessful()) {
-                log.error("M-Pesa STK Push Failed: {}", responseBody);
+                log.error("M-Pesa STK Push Failed: {}", responseString);
                 throw new BusinessLogicException("M-Pesa STK Push Failed.");
             }
 
-            MpesaDto.StkPushSyncResponse stkResponse = objectMapper.readValue(responseBody, MpesaDto.StkPushSyncResponse.class);
+            MpesaDto.StkPushSyncResponse stkResponse = objectMapper.readValue(responseString, MpesaDto.StkPushSyncResponse.class);
 
             // SAVE PENDING TRANSACTION
             MpesaTransaction transaction = MpesaTransaction.builder()

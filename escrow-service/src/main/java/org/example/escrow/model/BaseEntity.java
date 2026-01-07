@@ -1,8 +1,10 @@
 package org.example.escrow.model;
 
 import jakarta.persistence.*;
-import jakarta.persistence.MappedSuperclass;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -13,6 +15,9 @@ import java.util.UUID;
 @MappedSuperclass
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class BaseEntity {
 
     @Id
