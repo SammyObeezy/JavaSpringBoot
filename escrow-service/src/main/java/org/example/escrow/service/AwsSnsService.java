@@ -50,7 +50,7 @@ public class AwsSnsService implements NotificationService {
         } catch (Exception e) {
             // CRITICAL FIX FOR TESTING:
             // If AWS credentials fail, we catch the exception and LOG the OTP.
-            // This allows the Registration Transaction to COMMIT so you can proceed to Login.
+            // This allows the Registration Transaction to COMMIT so you can proceed to Log in.
             logger.error("AWS SNS Failed (Check Credentials). FALLBACK OTP LOG -> To: {}, Message: {}", phoneNumber, message);
         }
     }
