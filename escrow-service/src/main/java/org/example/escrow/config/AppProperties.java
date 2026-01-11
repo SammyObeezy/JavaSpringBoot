@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * Type-safe configuration loaded from application.properties.
- * Use this bean in your Services instead of static constants.
  */
 @Data
 @Configuration
@@ -18,14 +17,13 @@ public class AppProperties {
     private final Escrow escrow = new Escrow();
     private final Defaults defaults = new Defaults();
     private final Api api = new Api();
-    // Added Mpesa configuration object
     private final Mpesa mpesa = new Mpesa();
 
     @Data
     public static class Security {
         private long otpExpirationMinutes;
+        private int otpLength; // <-- Added this field
         private int maxLoginAttempts;
-        //32-byte AES Key (Base64 encoded)
         private String encryptionKey;
     }
 

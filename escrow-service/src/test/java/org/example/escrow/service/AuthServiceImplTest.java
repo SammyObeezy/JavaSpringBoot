@@ -30,8 +30,8 @@ class AuthServiceImplTest {
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private AppProperties appProperties;
     @Mock private OtpService otpService;
-    // We need to mock the Config inner class structure for AppProperties
     @Mock private AppProperties.Escrow escrowProps;
+    @Mock private AppProperties.Security securityProps; // Mock security props if needed
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -45,12 +45,15 @@ class AuthServiceImplTest {
                 "John", "Doe", "john@test.com", "0712345678", "Pass123#", UserRole.ROLE_USER
         );
 
-        // Fixed: Removed .id() from builder because @Builder doesn't see parent fields.
-        // We set ID manually using the setter below.
+        // Fixed: Added firstName and lastName to match Entity definition
+        // Fixed: Set ID manually via setter
         user = User.builder()
+                .firstName("John")
+                .lastName("Doe")
                 .email("john@test.com")
                 .phoneNumber("254712345678")
                 .passwordHash("encoded_hash")
+                .role(UserRole.ROLE_USER)
                 .build();
         user.setId(java.util.UUID.randomUUID());
 

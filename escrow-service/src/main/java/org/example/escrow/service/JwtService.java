@@ -25,21 +25,37 @@ public class JwtService {
     @Value("${app.security.jwt.expiration-minutes:1440}")
     private long jwtExpirationMinutes;
 
+    @Value("${app.security.jwt.refresh-expiration-minutes:10080}")
+    private long refreshExpirationMinutes;
+
     public String generateToken(User user) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", user.getRole());
         claims.put("userId", user.getId());
+        claims.put("type", "ACCESS"); // Distinguish from refresh token
 
+        return buildToken(claims, user, jwtExpirationMinutes);
+    }
+
+    public String generateRefreshToken(User user) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", user.getId());
+        claims.put("type", "REFRESH"); // Distinguish from access token
+
+        return buildToken(claims, user, refreshExpirationMinutes);
+    }
+
+    private String buildToken(Map<String, Object> claims, User user, long expirationMinutes) {
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(user.getEmail())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + (jwtExpirationMinutes * 60 * 1000)))
+                .setExpiration(new Date(System.currentTimeMillis() + (expirationMinutes * 60 * 1000)))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // --- NEW VALIDATION METHODS ---
+    // --- VALIDATION METHODS ---
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);

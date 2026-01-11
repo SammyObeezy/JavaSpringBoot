@@ -17,9 +17,10 @@ public class AuthResponse {
     private String email;
     private String phoneNumber;
     private String role;
+
     private boolean phoneVerified;
     private boolean kycVerified;
 
-    // In a real JWT setup, this would be the Access Token
     private String accessToken;
+    private String refreshToken;
 }

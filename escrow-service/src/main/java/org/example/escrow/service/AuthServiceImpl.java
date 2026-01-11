@@ -13,6 +13,7 @@ import org.example.escrow.exception.DuplicateResourceException;
 import org.example.escrow.exception.ResourceNotFoundException;
 import org.example.escrow.model.User;
 import org.example.escrow.model.Wallet;
+import org.example.escrow.model.enums.NotificationChannel;
 import org.example.escrow.model.enums.WalletType;
 import org.example.escrow.repository.UserRepository;
 import org.example.escrow.repository.WalletRepository;
@@ -55,46 +56,61 @@ public class AuthServiceImpl implements AuthService {
         User savedUser = userRepository.save(user);
 
         createDefaultWallet(savedUser);
-        otpService.generateAndSendOtp(savedUser); // Send Initial Verification OTP
+        otpService.generateAndSendOtp(savedUser);
 
         return userMapper.toAuthResponse(savedUser);
     }
 
     @Override
     public void initiateLogin(LoginRequest request) {
-        // 1. Authenticate Password (Throws exception if fails)
+        // Determine Identifier and Channel based on input
+        String identifier;
+        NotificationChannel channel;
+
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            identifier = request.getEmail();
+            channel = NotificationChannel.EMAIL;
+        } else if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
+            identifier = ValidationUtils.sanitizePhoneNumber(request.getPhoneNumber());
+            channel = NotificationChannel.SMS;
+        } else {
+            throw new BusinessLogicException("Email or Phone Number is required for login.");
+        }
+
+        // 1. Authenticate (Checks DB using CustomUserDetailsService)
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+                new UsernamePasswordAuthenticationToken(identifier, request.getPassword())
         );
 
-        // 2. Fetch User
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", request.getEmail()));
+        // 2. Fetch User to send OTP
+        // We reuse the logic from CustomUserDetailsService to find by either
+        String finalIdentifier = identifier;
+        User user = userRepository.findByEmail(finalIdentifier)
+                .or(() -> userRepository.findByPhoneNumber(finalIdentifier))
+                .orElseThrow(() -> new ResourceNotFoundException("User", "identifier", finalIdentifier));
 
         // 3. Security Check
         if (!user.isPhoneVerified()) {
-            throw new BusinessLogicException("Phone number not verified. Please verify your registration OTP first.");
+            throw new BusinessLogicException("Account not verified. Please verify your registration OTP first.");
         }
 
-        // 4. Send 2FA OTP
-        otpService.generateAndSendOtp(user);
+        // 4. Send 2FA OTP (Email or SMS based on login method)
+        otpService.generateAndSendOtp(user, channel);
     }
 
     @Override
     public AuthResponse verifyLogin(VerifyOtpRequest request) {
-        // 1. Verify OTP (Throws exception if invalid/expired)
         otpService.verifyOtp(request.getEmail(), request.getCode());
 
-        // 2. Fetch User
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", request.getEmail()));
 
-        // 3. Generate Token
-        String jwtToken = jwtService.generateToken(user);
+        String accessToken = jwtService.generateToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
 
-        // 4. Return Response
         AuthResponse response = userMapper.toAuthResponse(user);
-        response.setAccessToken(jwtToken);
+        response.setAccessToken(accessToken);
+        response.setRefreshToken(refreshToken);
 
         return response;
     }

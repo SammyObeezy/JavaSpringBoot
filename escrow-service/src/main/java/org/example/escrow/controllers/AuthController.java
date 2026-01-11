@@ -3,6 +3,7 @@ package org.example.escrow.controllers;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.escrow.dto.identity.*;
+import org.example.escrow.model.enums.NotificationChannel;
 import org.example.escrow.service.AuthService;
 import org.example.escrow.service.OtpService;
 import org.springframework.http.HttpStatus;
@@ -24,32 +25,41 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request){
         AuthResponse response = authService.register(request);
         return new ResponseEntity<>(
-                ApiResponse.success(response, "User registered successfully. Please verify your phone."),
+                ApiResponse.success(response, "User registered successfully. Please verify your account."),
                 HttpStatus.CREATED
         );
     }
 
-    // Used for initial registration verification
     @PostMapping("/verify-phone")
     public ResponseEntity<ApiResponse<Void>> verifyPhone(@Valid @RequestBody VerifyOtpRequest request) {
         otpService.verifyOtp(request.getEmail(), request.getCode());
         return new ResponseEntity<>(
-                ApiResponse.success(null, "Phone number verified successfully."),
+                ApiResponse.success(null, "Account verified successfully."), // Updated message
                 HttpStatus.OK
         );
     }
 
-    // Step 1: Login (Password Check -> Sends OTP)
+    @PostMapping("/resend-otp")
+    public ResponseEntity<ApiResponse<Void>> resendOtp(@Valid @RequestBody ResendOtpRequest request) {
+        NotificationChannel channel = request.getChannel() != null ? request.getChannel() : NotificationChannel.SMS;
+        otpService.resendOtp(request.getEmail(), channel);
+
+        return new ResponseEntity<>(
+                ApiResponse.success(null, "OTP resent successfully via " + channel),
+                HttpStatus.OK
+        );
+    }
+
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<Void>> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<ApiResponse<Void>> login(@RequestBody LoginRequest request) {
+        // Removed @Valid because fields are optional in DTO now, validated in service
         authService.initiateLogin(request);
         return new ResponseEntity<>(
-                ApiResponse.success(null, "Credentials valid. OTP sent to your phone."),
+                ApiResponse.success(null, "Credentials valid. OTP sent."),
                 HttpStatus.ACCEPTED
         );
     }
 
-    // Step 2: Login Verify (OTP Check -> Returns Token)
     @PostMapping("/login/verify")
     public ResponseEntity<ApiResponse<AuthResponse>> verifyLogin(@Valid @RequestBody VerifyOtpRequest request) {
         AuthResponse response = authService.verifyLogin(request);
