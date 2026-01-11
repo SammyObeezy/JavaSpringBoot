@@ -58,11 +58,14 @@ public class AdminService {
 
     /**
      * Verify or Reject a Merchant.
+     * Updated to support looking up by either MerchantProfile ID OR User ID.
      */
     @Transactional
-    public MerchantProfileResponse verifyMerchant(UUID merchantId, VerificationStatus status) {
-        MerchantProfile profile = merchantProfileRepository.findById(merchantId)
-                .orElseThrow(() -> new ResourceNotFoundException("Merchant", "id", merchantId));
+    public MerchantProfileResponse verifyMerchant(UUID id, VerificationStatus status) {
+        // Try to find by MerchantProfile ID first, if not found, try by User ID
+        MerchantProfile profile = merchantProfileRepository.findById(id)
+                .or(() -> merchantProfileRepository.findByUserId(id))
+                .orElseThrow(() -> new ResourceNotFoundException("Merchant Profile", "id or userId", id));
 
         profile.setVerificationStatus(status);
         MerchantProfile savedProfile = merchantProfileRepository.save(profile);
