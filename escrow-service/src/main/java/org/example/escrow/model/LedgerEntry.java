@@ -2,6 +2,7 @@ package org.example.escrow.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.example.escrow.model.enums.LedgerEntryType;
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -12,8 +13,8 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class LedgerEntry extends  BaseEntity{
+@SuperBuilder
+public class LedgerEntry extends BaseEntity {
 
     @Column(name = "transaction_id", nullable = false)
     private UUID transactionId;

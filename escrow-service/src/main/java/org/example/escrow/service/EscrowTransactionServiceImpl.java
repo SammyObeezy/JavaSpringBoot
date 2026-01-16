@@ -29,16 +29,18 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class EscrowTransactionServiceImpl {
+public class EscrowTransactionServiceImpl implements EscrowTransactionService {
 
     private final EscrowTransactionRepository transactionRepository;
     private final MerchantServiceRepository merchantServiceRepository;
     private final UserRepository userRepository;
     private final MerchantProfileRepository merchantProfileRepository;
     private final AppProperties appProperties;
-    private final WalletServiceImpl walletService;
+    private final WalletService walletService;
+
     private final EscrowMapper escrowMapper;
 
+    @Override
     @Transactional
     public TransactionResponse initiateTransaction(UUID buyerId, InitiateTransactionRequest request) {
         User buyer = userRepository.findById(buyerId)
@@ -73,10 +75,10 @@ public class EscrowTransactionServiceImpl {
                 .build();
 
         EscrowTransaction saved = transactionRepository.save(transaction);
-        // The Mapper inside this @Transactional method will safely load lazy fields
         return escrowMapper.toResponse(saved);
     }
 
+    @Override
     @Transactional
     public TransactionResponse payTransaction(UUID buyerId, UUID transactionId) {
         EscrowTransaction transaction = transactionRepository.findById(transactionId)
@@ -102,9 +104,7 @@ public class EscrowTransactionServiceImpl {
         return escrowMapper.toResponse(saved);
     }
 
-    // NEW METHOD FOR HISTORY
-    // Added @Transactional(readOnly=true) to keep the DB Session open while mapping DTOs.
-    // This solves the LazyInitializationException and removes the need for manual "get" calls.
+    @Override
     @Transactional(readOnly = true)
     public List<TransactionResponse> getTransactionHistory(String email) {
         User user = userRepository.findByEmail(email)
@@ -124,8 +124,6 @@ public class EscrowTransactionServiceImpl {
             transactions = transactionRepository.findByBuyIdOrderByCreatedAtDesc(user.getId());
         }
 
-        // The mapper will now automatically fetch lazy fields (service, merchant)
-        // because the Transaction/Session is still active.
         return transactions.stream()
                 .map(escrowMapper::toResponse)
                 .collect(Collectors.toList());

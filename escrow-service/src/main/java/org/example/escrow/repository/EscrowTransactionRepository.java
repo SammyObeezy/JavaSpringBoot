@@ -3,20 +3,29 @@ package org.example.escrow.repository;
 import org.example.escrow.model.EscrowTransaction;
 import org.example.escrow.model.enums.EscrowStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.UUID;
 
+@Repository
 public interface EscrowTransactionRepository extends JpaRepository<EscrowTransaction, UUID> {
 
-    // "My Orders" (As a Buyer)
-    // Fixed: Changed findByBuyerId to findByBuyId to match the 'private User buy' field in the Entity
-    List<EscrowTransaction> findByBuyIdOrderByCreatedAtDesc(UUID buyerId);
+    @Query("SELECT t FROM EscrowTransaction t " +
+            "JOIN FETCH t.service " +
+            "JOIN FETCH t.merchant " +
+            "WHERE t.buy.id = :buyerId " +
+            "ORDER BY t.createdAt DESC")
+    List<EscrowTransaction> findByBuyIdOrderByCreatedAtDesc(@Param("buyerId") UUID buyerId);
 
-    // "My Sales" (As a Merchant)
-    // This works because the field is named 'private MerchantProfile merchant'
-    List<EscrowTransaction> findByMerchantIdOrderByCreatedAtDesc(UUID merchantId);
+    @Query("SELECT t FROM EscrowTransaction t " +
+            "JOIN FETCH t.service " +
+            "JOIN FETCH t.buy " +
+            "WHERE t.merchant.id = :merchantId " +
+            "ORDER BY t.createdAt DESC")
+    List<EscrowTransaction> findByMerchantIdOrderByCreatedAtDesc(@Param("merchantId") UUID merchantId);
 
-    // For Cron Jobs: Find stuck transactions (e.g., waiting payment too long)
     List<EscrowTransaction> findByStatus(EscrowStatus status);
 }

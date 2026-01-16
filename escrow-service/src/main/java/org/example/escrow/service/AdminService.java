@@ -39,8 +39,6 @@ public class AdminService {
                 .map(adminMapper::toMerchantResponse);
     }
 
-    // --- UPDATE (Admin Actions) ---
-
     /**
      * Ban or Activate a user.
      * In financial systems, we rarely DELETE. We deactivate.

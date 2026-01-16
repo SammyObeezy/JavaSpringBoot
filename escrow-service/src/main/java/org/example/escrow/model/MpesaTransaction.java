@@ -2,6 +2,7 @@ package org.example.escrow.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 
@@ -11,7 +12,7 @@ import java.math.BigDecimal;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder // Changed to SuperBuilder to support BaseEntity inheritance
 public class MpesaTransaction extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)

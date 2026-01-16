@@ -9,12 +9,15 @@ import org.example.escrow.dto.wallet.WalletResponse;
 import org.example.escrow.exception.ResourceNotFoundException;
 import org.example.escrow.model.Wallet;
 import org.example.escrow.repository.UserRepository;
-import org.example.escrow.service.WalletServiceImpl;
+import org.example.escrow.service.WalletService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
@@ -23,7 +26,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class WalletController {
 
-    private final WalletServiceImpl walletService;
+    // Updated: Inject Interface instead of Implementation
+    private final WalletService walletService;
+
     private final UserRepository userRepository;
     private final WalletMapper walletMapper;
 
@@ -34,10 +39,9 @@ public class WalletController {
 
         UUID userId = getUserIdFromDetails(userDetails);
 
-        // 1. Process Logic
+        // Logic remains the same, just calling the interface now
         Wallet updatedWallet = walletService.depositFunds(userId, request);
 
-        // 2. Map to Safe DTO
         WalletResponse response = walletMapper.toResponse(updatedWallet);
 
         return new ResponseEntity<>(

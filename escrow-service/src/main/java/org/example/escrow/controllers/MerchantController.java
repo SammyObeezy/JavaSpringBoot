@@ -12,7 +12,7 @@ import org.example.escrow.model.MerchantProfile;
 import org.example.escrow.model.MerchantService;
 import org.example.escrow.model.User;
 import org.example.escrow.repository.UserRepository;
-import org.example.escrow.service.MerchantPortalServiceImpl;
+import org.example.escrow.service.MerchantPortalService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -29,9 +29,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MerchantController {
 
-    private final MerchantPortalServiceImpl merchantPortalService;
+    // Updated: Now injecting the Interface, not the Implementation class
+    private final MerchantPortalService merchantPortalService;
     private final UserRepository userRepository;
-    private final MerchantMapper merchantMapper; // Inject Mapper
+    private final MerchantMapper merchantMapper;
 
     @PostMapping("/onboard")
     public ResponseEntity<ApiResponse<MerchantProfile>> onboardMerchant(
@@ -39,8 +40,7 @@ public class MerchantController {
             @Valid @RequestBody MerchantOnboardingRequest request) {
 
         UUID userId = getUserIdFromDetails(userDetails);
-        // Note: Returning MerchantProfile entity here might also cause LazyInit issues if it has lazy fields.
-        // Ideally, map this to a DTO too, but let's fix the specific error you hit first.
+
         MerchantProfile profile = merchantPortalService.onboardMerchant(userId, request);
 
         return new ResponseEntity<>(
@@ -55,9 +55,9 @@ public class MerchantController {
             @Valid @RequestBody CreateServiceRequest request) {
 
         UUID userId = getUserIdFromDetails(userDetails);
+
         MerchantService service = merchantPortalService.createService(userId, request);
 
-        // Convert Entity -> DTO to avoid LazyInitializationException during JSON serialization
         MerchantServiceResponse response = merchantMapper.toResponse(service);
 
         return new ResponseEntity<>(

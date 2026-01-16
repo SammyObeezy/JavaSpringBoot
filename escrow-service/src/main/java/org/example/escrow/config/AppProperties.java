@@ -18,11 +18,12 @@ public class AppProperties {
     private final Defaults defaults = new Defaults();
     private final Api api = new Api();
     private final Mpesa mpesa = new Mpesa();
+    private final Rabbitmq rabbitmq = new Rabbitmq(); // Added RabbitMQ config
 
     @Data
     public static class Security {
         private long otpExpirationMinutes;
-        private int otpLength; // <-- Added this field
+        private int otpLength;
         private int maxLoginAttempts;
         private String encryptionKey;
     }
@@ -64,5 +65,12 @@ public class AppProperties {
         private String authUrl;
         private String stkPushUrl;
         private String callbackUrl;
+    }
+
+    @Data
+    public static class Rabbitmq {
+        private String queue;
+        private String exchange;
+        private String routingKey;
     }
 }

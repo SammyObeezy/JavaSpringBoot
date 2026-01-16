@@ -2,7 +2,11 @@ package org.example.escrow.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.example.escrow.model.enums.UserRole;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -10,7 +14,7 @@ import org.example.escrow.model.enums.UserRole;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class User extends BaseEntity {
 
     @Column(name = "first_name", nullable = false)
@@ -40,4 +44,22 @@ public class User extends BaseEntity {
     @Column(name = "is_phone_verified")
     @Builder.Default
     private boolean phoneVerified = false;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Wallet> wallets = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<OtpCode> otpCodes = new ArrayList<>();
+
+    public void addWallet(Wallet wallet) {
+        wallets.add(wallet);
+        wallet.setUser(this);
+    }
+
+    public void removeWallet(Wallet wallet) {
+        wallets.remove(wallet);
+        wallet.setUser(null);
+    }
 }

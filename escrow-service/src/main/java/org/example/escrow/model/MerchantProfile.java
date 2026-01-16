@@ -2,6 +2,7 @@ package org.example.escrow.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.example.escrow.model.enums.VerificationStatus;
 import java.math.BigDecimal;
 
@@ -11,8 +12,8 @@ import java.math.BigDecimal;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class MerchantProfile extends BaseEntity{
+@SuperBuilder
+public class MerchantProfile extends BaseEntity {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
