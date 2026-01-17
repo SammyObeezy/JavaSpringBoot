@@ -18,7 +18,6 @@ import org.example.escrow.model.enums.NotificationChannel;
 import org.example.escrow.model.enums.WalletType;
 import org.example.escrow.repository.UserRepository;
 import org.example.escrow.repository.WalletRepository;
-import org.example.escrow.service.JwtService;
 import org.example.escrow.util.ValidationUtils;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

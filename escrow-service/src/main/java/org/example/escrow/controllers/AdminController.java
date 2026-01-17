@@ -24,7 +24,6 @@ public class AdminController {
 
     private final AdminService adminService;
 
-    // --- READ (Paginated) ---
 
     @GetMapping("/users")
     public ResponseEntity<ApiResponse<Page<UserResponse>>> getAllUsers(
@@ -47,8 +46,6 @@ public class AdminController {
                 HttpStatus.OK
         );
     }
-
-    // --- UPDATE (Actions) ---
 
     @PutMapping("/users/{userId}/status")
     public ResponseEntity<ApiResponse<UserResponse>> updateUserStatus(

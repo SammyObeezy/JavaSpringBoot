@@ -9,9 +9,6 @@ import org.example.escrow.util.ValidationUtils;
 @Data
 public class LoginRequest {
 
-    // Validation is applied only if the field is not null.
-    // We do NOT use @NotBlank here because the user might provide the OTHER field.
-
     @Email(message = "Invalid email format")
     private String email;
 

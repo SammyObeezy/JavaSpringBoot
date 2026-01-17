@@ -1,17 +1,26 @@
-version: '3.8'
-
 services:
-  # 1. DATABASE -> REMOVED
-  # We are using your local PostgreSQL running on your laptop.
-  # Ensure your 'application.properties' points to localhost:5432
+  # 1. DATABASE
+  postgres:
+    image: postgres:15-alpine
+    container_name: escrow-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    networks:
+      - escrow-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # 2. CACHE (Redis)
-  # We still need this because installing Redis locally can be annoying.
   redis:
     image: redis:7-alpine
-    container_name: ${REDIS_CONTAINER_NAME:-safaricom_escrow_redis}
+    container_name: safaricom_escrow_redis
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_PORT}:6379"
     command: redis-server --save 60 1 --loglevel warning
     networks:
       - escrow-network
@@ -24,13 +33,51 @@ services:
   # 3. MESSAGE BROKER (RabbitMQ)
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
-    container_name: ${RABBITMQ_CONTAINER_NAME:-escrow-rabbitmq}
+    container_name: escrow-rabbitmq
     ports:
-      - "${RABBITMQ_PORT:-5672}:5672"       # App connection
-      - "${RABBITMQ_UI_PORT:-15672}:15672"  # Admin UI
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_UI_PORT}:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    networks:
+      - escrow-network
+
+  # 4. THE APPLICATION
+  escrow-app:
+    build: .
+    container_name: escrow-backend
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    environment:
+      # Pass DB credentials from .env to override application.properties
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+
+      # AWS Secrets (Passed from .env)
+      APP_CONFIG_AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      APP_CONFIG_AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+
+      # Internal Service Links
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_RABBITMQ_HOST: rabbitmq
+
+      # JVM Tuning
+      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx256m"
+    deploy:
+      resources:
+        limits:
+          # Hardcoded to 512M as requested to prevent parsing errors
+          memory: 512M
     networks:
       - escrow-network
 

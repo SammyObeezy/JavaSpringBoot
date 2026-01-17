@@ -11,9 +11,6 @@ import org.example.escrow.model.User;
 import org.example.escrow.model.enums.NotificationChannel;
 import org.example.escrow.repository.OtpCodeRepository;
 import org.example.escrow.repository.UserRepository;
-import org.example.escrow.service.EmailService;
-import org.example.escrow.service.NotificationService;
-import org.example.escrow.service.OtpService;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
