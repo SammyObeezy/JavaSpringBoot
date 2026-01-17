@@ -15,8 +15,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @SuperBuilder
 public class EscrowTransaction extends BaseEntity {
-
-    // Relationships (Immutable: You cannot swap the buyer/seller of an existing tx)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "buyer_id", nullable = false, updatable = false)
     private User buy;

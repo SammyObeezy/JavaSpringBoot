@@ -13,9 +13,9 @@ public interface AuthService {
      */
     AuthResponse register(RegisterRequest request);
 
-    // Step 1: Check credentials, send OTP, return void for message
     void initiateLogin(LoginRequest request);
 
-    // Step 2: Check OTP, return Token
     AuthResponse verifyLogin(VerifyOtpRequest request);
+
+    void logout(String token);
 }

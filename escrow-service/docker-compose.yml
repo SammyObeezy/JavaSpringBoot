@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # 1. DATABASE -> REMOVED
+  # We are using your local PostgreSQL running on your laptop.
+  # Ensure your 'application.properties' points to localhost:5432
+
+  # 2. CACHE (Redis)
+  # We still need this because installing Redis locally can be annoying.
+  redis:
+    image: redis:7-alpine
+    container_name: ${REDIS_CONTAINER_NAME:-safaricom_escrow_redis}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    networks:
+      - escrow-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # 3. MESSAGE BROKER (RabbitMQ)
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: ${RABBITMQ_CONTAINER_NAME:-escrow-rabbitmq}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"       # App connection
+      - "${RABBITMQ_UI_PORT:-15672}:15672"  # Admin UI
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    networks:
+      - escrow-network
+
+networks:
+  escrow-network:
+    driver: bridge

@@ -4,9 +4,6 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Type-safe configuration loaded from application.properties.
- */
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "app.config")
@@ -18,7 +15,7 @@ public class AppProperties {
     private final Defaults defaults = new Defaults();
     private final Api api = new Api();
     private final Mpesa mpesa = new Mpesa();
-    private final Rabbitmq rabbitmq = new Rabbitmq(); // Added RabbitMQ config
+    private final Rabbitmq rabbitmq = new Rabbitmq();
 
     @Data
     public static class Security {

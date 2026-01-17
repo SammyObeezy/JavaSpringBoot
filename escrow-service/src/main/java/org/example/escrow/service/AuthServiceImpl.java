@@ -2,6 +2,7 @@ package org.example.escrow.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.escrow.config.AppProperties;
 import org.example.escrow.dto.identity.AuthResponse;
 import org.example.escrow.dto.identity.LoginRequest;
@@ -17,9 +18,11 @@ import org.example.escrow.model.enums.NotificationChannel;
 import org.example.escrow.model.enums.WalletType;
 import org.example.escrow.repository.UserRepository;
 import org.example.escrow.repository.WalletRepository;
+import org.example.escrow.service.JwtService;
 import org.example.escrow.util.ValidationUtils;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +30,7 @@ import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
@@ -63,7 +67,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void initiateLogin(LoginRequest request) {
-        // Determine Identifier and Channel based on input
         String identifier;
         NotificationChannel channel;
 
@@ -77,24 +80,19 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessLogicException("Email or Phone Number is required for login.");
         }
 
-        // 1. Authenticate (Checks DB using CustomUserDetailsService)
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(identifier, request.getPassword())
         );
 
-        // 2. Fetch User to send OTP
-        // We reuse the logic from CustomUserDetailsService to find by either
         String finalIdentifier = identifier;
         User user = userRepository.findByEmail(finalIdentifier)
                 .or(() -> userRepository.findByPhoneNumber(finalIdentifier))
                 .orElseThrow(() -> new ResourceNotFoundException("User", "identifier", finalIdentifier));
 
-        // 3. Security Check
         if (!user.isPhoneVerified()) {
             throw new BusinessLogicException("Account not verified. Please verify your registration OTP first.");
         }
 
-        // 4. Send 2FA OTP (Email or SMS based on login method)
         otpService.generateAndSendOtp(user, channel);
     }
 
@@ -113,6 +111,23 @@ public class AuthServiceImpl implements AuthService {
         response.setRefreshToken(refreshToken);
 
         return response;
+    }
+
+    @Override
+    public void logout(String token) {
+        String jwt = token;
+        if (token != null && token.startsWith("Bearer ")) {
+            jwt = token.substring(7);
+        }
+
+        String username = jwtService.extractUsername(jwt);
+        log.info("User logged out: {}", username);
+
+        // 2. Clear Context (Best practice, though redundant in stateless per-request filter)
+        SecurityContextHolder.clearContext();
+
+        // 3. TODO: Add Token Blacklisting here (Redis)
+        // tokenBlacklistService.blacklist(jwt);
     }
 
     private void createDefaultWallet(User user){

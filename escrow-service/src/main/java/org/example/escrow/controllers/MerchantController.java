@@ -2,6 +2,7 @@ package org.example.escrow.controllers;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.escrow.dto.admin.MerchantProfileResponse;
 import org.example.escrow.dto.identity.ApiResponse;
 import org.example.escrow.dto.mapper.MerchantMapper;
 import org.example.escrow.dto.merchant.CreateServiceRequest;
@@ -29,13 +30,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MerchantController {
 
-    // Updated: Now injecting the Interface, not the Implementation class
     private final MerchantPortalService merchantPortalService;
     private final UserRepository userRepository;
     private final MerchantMapper merchantMapper;
 
     @PostMapping("/onboard")
-    public ResponseEntity<ApiResponse<MerchantProfile>> onboardMerchant(
+    public ResponseEntity<ApiResponse<MerchantProfileResponse>> onboardMerchant(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody MerchantOnboardingRequest request) {
 
@@ -43,8 +43,10 @@ public class MerchantController {
 
         MerchantProfile profile = merchantPortalService.onboardMerchant(userId, request);
 
+        MerchantProfileResponse response = merchantMapper.toResponse(profile);
+
         return new ResponseEntity<>(
-                ApiResponse.success(profile, "Merchant profile created successfully."),
+                ApiResponse.success(response, "Merchant profile created successfully."),
                 HttpStatus.CREATED
         );
     }

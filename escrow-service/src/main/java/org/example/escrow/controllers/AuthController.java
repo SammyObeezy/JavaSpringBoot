@@ -1,5 +1,6 @@
 package org.example.escrow.controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.escrow.dto.identity.*;
@@ -34,7 +35,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> verifyPhone(@Valid @RequestBody VerifyOtpRequest request) {
         otpService.verifyOtp(request.getEmail(), request.getCode());
         return new ResponseEntity<>(
-                ApiResponse.success(null, "Account verified successfully."), // Updated message
+                ApiResponse.success(null, "Account verified successfully."),
                 HttpStatus.OK
         );
     }
@@ -52,7 +53,6 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<Void>> login(@RequestBody LoginRequest request) {
-        // Removed @Valid because fields are optional in DTO now, validated in service
         authService.initiateLogin(request);
         return new ResponseEntity<>(
                 ApiResponse.success(null, "Credentials valid. OTP sent."),
@@ -65,6 +65,18 @@ public class AuthController {
         AuthResponse response = authService.verifyLogin(request);
         return new ResponseEntity<>(
                 ApiResponse.success(response, "Login successful."),
+                HttpStatus.OK
+        );
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            authService.logout(authHeader);
+        }
+        return new ResponseEntity<>(
+                ApiResponse.success(null, "Logged out successfully."),
                 HttpStatus.OK
         );
     }
