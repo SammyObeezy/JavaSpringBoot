@@ -30,7 +30,8 @@ This project is a **production-ready, event-driven microservices architecture** 
 
 ## Architecture Overview
 
-<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/28188b25-7c15-44d7-b081-193a1f33a4f4" />
+<img width="2816" height="1536" alt="Gemini_Generated_Image_fxbguvfxbguvfxbg" src="https://github.com/user-attachments/assets/562a2d99-6efd-4d53-941c-d1ac50cc5546" />
+
 
 ### Flow Description:
 1. **Authentication**: User sends credentials to the API Gateway, which routes to the Auth Service to validate against the Auth DB and issue a JWT Token.
